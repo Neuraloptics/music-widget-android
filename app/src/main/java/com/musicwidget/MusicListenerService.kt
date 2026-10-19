@@ -37,21 +37,80 @@ class MusicListenerService : NotificationListenerService() {
         super.onListenerDisconnected()
     }
 
-    override fun onNotificationPosted(sbn: StatusBarNotification?) = refresh()
-    override fun onNotificationRemoved(sbn: StatusBarNotification?) = refresh()
+    override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        // Fallback: si MediaSession no devuelve nada, leemos la notificación directamente
+        if (!tryMediaSession()) {
+            tryFromNotification(sbn)
+        }
+    }
+
+    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
+        refresh()
+    }
 
     private fun refresh() {
-        try {
-            handleControllers(sessionMgr?.getActiveSessions(
+        if (!tryMediaSession()) {
+            // intento con notificaciones activas
+            val active = try { activeNotifications } catch (e: Exception) { null }
+            active?.firstOrNull { isMediaNotification(it) }?.let {
+                tryFromNotification(it)
+            } ?: persist("No music playing", "", false, null)
+        }
+    }
+
+    /** Intenta obtener info desde MediaSession. Retorna true si encontró sesión activa. */
+    private fun tryMediaSession(): Boolean {
+        return try {
+            val sessions = sessionMgr?.getActiveSessions(
                 ComponentName(this, MusicListenerService::class.java)
-            ))
-        } catch (e: Exception) { e.printStackTrace() }
+            )
+            val ctrl = sessions?.firstOrNull() ?: return false
+            handleController(ctrl)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /** Fallback: extrae metadata desde extras de la notificación (compatible con apps fork). */
+    private fun tryFromNotification(sbn: StatusBarNotification?) {
+        sbn ?: return
+        if (!isMediaNotification(sbn)) return
+
+        val extras = sbn.notification?.extras ?: return
+        val title  = extras.getString("android.title") ?: return
+        val artist = extras.getString("android.text") ?: ""
+        val isPlaying = (sbn.notification.flags and android.app.Notification.FLAG_ONGOING_EVENT) != 0
+
+        val art: Bitmap? = try {
+            val icon = extras.getParcelable<android.graphics.drawable.Icon>("android.largeIcon")
+            icon?.loadDrawable(this)?.let { drawable ->
+                val bmp = android.graphics.Bitmap.createBitmap(120, 120, android.graphics.Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(bmp)
+                drawable.setBounds(0, 0, 120, 120)
+                drawable.draw(canvas)
+                bmp
+            }
+        } catch (e: Exception) { null }
+
+        persist(title, artist, isPlaying, art)
+    }
+
+    private fun isMediaNotification(sbn: StatusBarNotification): Boolean {
+        val extras = sbn.notification?.extras ?: return false
+        // tiene template de media O tiene título de canción
+        val template = extras.getString("android.template") ?: ""
+        val hasTitle = extras.getString("android.title") != null
+        return template.contains("MediaStyle", ignoreCase = true) || hasTitle
     }
 
     private fun handleControllers(controllers: List<MediaController>?) {
         val ctrl = controllers?.firstOrNull()
-        if (ctrl == null) { persist("No music playing", "", false, null); return }
+        if (ctrl == null) { refresh(); return }
+        handleController(ctrl)
+    }
 
+    private fun handleController(ctrl: MediaController) {
         val meta    = ctrl.metadata
         val title   = meta?.getString(MediaMetadata.METADATA_KEY_TITLE) ?: "Unknown"
         val artist  = meta?.getString(MediaMetadata.METADATA_KEY_ARTIST)
@@ -60,7 +119,6 @@ class MusicListenerService : NotificationListenerService() {
         val rawArt  = meta?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
                    ?: meta?.getBitmap(MediaMetadata.METADATA_KEY_ART)
         val art     = rawArt?.let { Bitmap.createScaledBitmap(it, 120, 120, true) }
-
         persist(title, artist, playing, art)
     }
 
