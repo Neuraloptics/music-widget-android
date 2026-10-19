@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.media.AudioManager
+import android.os.Build
+import android.os.Bundle
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.widget.RemoteViews
@@ -33,6 +35,15 @@ class MusicWidgetProvider : AppWidgetProvider() {
         for (id in ids) renderWidget(context, manager, id)
     }
 
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        manager: AppWidgetManager,
+        widgetId: Int,
+        newOptions: Bundle
+    ) {
+        renderWidget(context, manager, widgetId)
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         when (intent.action) {
@@ -55,12 +66,18 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val artist  = p.getString("artist", "") ?: ""
         val playing = p.getBoolean("playing", false)
 
-        val v = RemoteViews(context.packageName, R.layout.widget_music)
+        // Layout responsivo segun el ancho del widget
+        val options   = manager.getAppWidgetOptions(id)
+        val minWidth  = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
+        val layoutRes = if (minWidth < 200) R.layout.widget_music_small else R.layout.widget_music
+
+        val v = RemoteViews(context.packageName, layoutRes)
         v.setTextViewText(R.id.songTitle,  title)
         v.setTextViewText(R.id.artistName, artist)
         v.setImageViewResource(R.id.btnPlayPause,
             if (playing) R.drawable.ic_pause else R.drawable.ic_play)
 
+        // Album art
         val artFile = File(context.filesDir, "album_art.png")
         if (artFile.exists()) {
             BitmapFactory.decodeFile(artFile.absolutePath)?.let {
@@ -70,14 +87,29 @@ class MusicWidgetProvider : AppWidgetProvider() {
             v.setImageViewResource(R.id.albumArt, R.drawable.ic_music_note)
         }
 
+        // Colores dinamicos Monet en API 31+
+        if (Build.VERSION.SDK_INT >= 31) {
+            val textPrimary   = context.getColor(android.R.color.system_neutral1_50)
+            val textSecondary = context.getColor(android.R.color.system_neutral2_300)
+            val accent        = context.getColor(android.R.color.system_accent1_200)
+            val accentOn      = context.getColor(android.R.color.system_accent1_900)
+
+            v.setTextColor(R.id.songTitle,  textPrimary)
+            v.setTextColor(R.id.artistName, textSecondary)
+            v.setInt(R.id.btnPrev,      "setColorFilter", accent)
+            v.setInt(R.id.btnNext,      "setColorFilter", accent)
+            v.setInt(R.id.btnPlayPause, "setColorFilter", accentOn)
+        }
+
+        // PendingIntents
         fun pi(req: Int, action: String) = PendingIntent.getBroadcast(
             context, req,
             Intent(context, MusicWidgetProvider::class.java).apply { this.action = action },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         v.setOnClickPendingIntent(R.id.btnPlayPause, pi(0, ACTION_PLAY_PAUSE))
-        v.setOnClickPendingIntent(R.id.btnNext,      pi(1, ACTION_NEXT))
-        v.setOnClickPendingIntent(R.id.btnPrev,      pi(2, ACTION_PREV))
+        v.setOnClickPendingIntent(R.id.btnPrev,      pi(1, ACTION_PREV))
+        v.setOnClickPendingIntent(R.id.btnNext,      pi(2, ACTION_NEXT))
 
         manager.updateAppWidget(id, v)
     }
