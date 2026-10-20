@@ -15,6 +15,32 @@ import java.io.FileOutputStream
 
 class MusicListenerService : NotificationListenerService() {
 
+    companion object {
+        // Apps conocidas de musica — fallback si no hay MediaSession
+        val MUSIC_PACKAGES = setOf(
+            "com.spotify.music",
+            "com.google.android.apps.youtube.music",
+            "app.revanced.android.apps.youtube.music",
+            "com.vanced.android.apps.youtube.music",
+            "com.soundcloud.android",
+            "com.amazon.mp3",
+            "com.tidal.music",
+            "com.deezer.android",
+            "com.apple.android.music",
+            "com.pandora.android",
+            "code.name.monkey.retromusic",
+            "com.maxmpz.audioplayer",
+            "com.neutroncode.mp",
+            "org.videolan.vlc",
+            "com.dd3boh.outertune",
+            "com.dd3boh.outertune.debug",
+            "app.opentune",
+            "com.opentune",
+            "com.listenbrainz.android",
+            "com.musicplayer.mp3player"
+        )
+    }
+
     private var sessionMgr: MediaSessionManager? = null
 
     private val sessionsListener =
@@ -38,27 +64,20 @@ class MusicListenerService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        // Fallback: si MediaSession no devuelve nada, leemos la notificación directamente
-        if (!tryMediaSession()) {
-            tryFromNotification(sbn)
-        }
+        if (!tryMediaSession()) tryFromNotification(sbn)
     }
 
-    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        refresh()
-    }
+    override fun onNotificationRemoved(sbn: StatusBarNotification?) = refresh()
 
     private fun refresh() {
         if (!tryMediaSession()) {
-            // intento con notificaciones activas
             val active = try { activeNotifications } catch (e: Exception) { null }
-            active?.firstOrNull { isMediaNotification(it) }?.let {
+            active?.firstOrNull { isRealMediaNotification(it) }?.let {
                 tryFromNotification(it)
-            } ?: persist("No music playing", "", false, null)
+            } ?: persist("No music playing", "", false, null, null)
         }
     }
 
-    /** Intenta obtener info desde MediaSession. Retorna true si encontró sesión activa. */
     private fun tryMediaSession(): Boolean {
         return try {
             val sessions = sessionMgr?.getActiveSessions(
@@ -67,25 +86,31 @@ class MusicListenerService : NotificationListenerService() {
             val ctrl = sessions?.firstOrNull() ?: return false
             handleController(ctrl)
             true
-        } catch (e: Exception) {
-            false
-        }
+        } catch (e: Exception) { false }
     }
 
-    /** Fallback: extrae metadata desde extras de la notificación (compatible con apps fork). */
+    /** Solo notificaciones con MediaStyle real — filtra Mercado Pago y similares */
+    private fun isRealMediaNotification(sbn: StatusBarNotification): Boolean {
+        val extras = sbn.notification?.extras ?: return false
+        val template = extras.getString("android.template") ?: ""
+        // debe tener MediaStyle O ser de app de musica conocida
+        return template.contains("MediaStyle", ignoreCase = true)
+            || sbn.packageName in MUSIC_PACKAGES
+    }
+
     private fun tryFromNotification(sbn: StatusBarNotification?) {
         sbn ?: return
-        if (!isMediaNotification(sbn)) return
+        if (!isRealMediaNotification(sbn)) return
 
         val extras = sbn.notification?.extras ?: return
-        val title  = extras.getString("android.title") ?: return
-        val artist = extras.getString("android.text") ?: ""
-        val isPlaying = (sbn.notification.flags and android.app.Notification.FLAG_ONGOING_EVENT) != 0
+        val title   = extras.getString("android.title") ?: return
+        val artist  = extras.getString("android.text") ?: ""
+        val playing = (sbn.notification.flags and android.app.Notification.FLAG_ONGOING_EVENT) != 0
 
         val art: Bitmap? = try {
             val icon = extras.getParcelable<android.graphics.drawable.Icon>("android.largeIcon")
             icon?.loadDrawable(this)?.let { drawable ->
-                val bmp = android.graphics.Bitmap.createBitmap(120, 120, android.graphics.Bitmap.Config.ARGB_8888)
+                val bmp = Bitmap.createBitmap(120, 120, Bitmap.Config.ARGB_8888)
                 val canvas = android.graphics.Canvas(bmp)
                 drawable.setBounds(0, 0, 120, 120)
                 drawable.draw(canvas)
@@ -93,15 +118,7 @@ class MusicListenerService : NotificationListenerService() {
             }
         } catch (e: Exception) { null }
 
-        persist(title, artist, isPlaying, art)
-    }
-
-    private fun isMediaNotification(sbn: StatusBarNotification): Boolean {
-        val extras = sbn.notification?.extras ?: return false
-        // tiene template de media O tiene título de canción
-        val template = extras.getString("android.template") ?: ""
-        val hasTitle = extras.getString("android.title") != null
-        return template.contains("MediaStyle", ignoreCase = true) || hasTitle
+        persist(title, artist, playing, art, sbn.packageName)
     }
 
     private fun handleControllers(controllers: List<MediaController>?) {
@@ -119,24 +136,22 @@ class MusicListenerService : NotificationListenerService() {
         val rawArt  = meta?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
                    ?: meta?.getBitmap(MediaMetadata.METADATA_KEY_ART)
         val art     = rawArt?.let { Bitmap.createScaledBitmap(it, 120, 120, true) }
-        persist(title, artist, playing, art)
+        persist(title, artist, playing, art, ctrl.packageName)
     }
 
-    private fun persist(title: String, artist: String, playing: Boolean, art: Bitmap?) {
+    private fun persist(title: String, artist: String, playing: Boolean, art: Bitmap?, musicPackage: String?) {
         getSharedPreferences("mw_prefs", Context.MODE_PRIVATE).edit()
             .putString("title",   title)
             .putString("artist",  artist)
             .putBoolean("playing", playing)
+            .apply { musicPackage?.let { putString("music_package", it) } }
             .apply()
 
         val artFile = File(filesDir, "album_art.png")
         if (art != null) {
-            try {
-                FileOutputStream(artFile).use { art.compress(Bitmap.CompressFormat.PNG, 80, it) }
-            } catch (e: Exception) { e.printStackTrace() }
-        } else {
-            artFile.delete()
-        }
+            try { FileOutputStream(artFile).use { art.compress(Bitmap.CompressFormat.PNG, 80, it) } }
+            catch (e: Exception) { e.printStackTrace() }
+        } else { artFile.delete() }
 
         sendBroadcast(Intent(this, MusicWidgetProvider::class.java).apply {
             action = MusicWidgetProvider.ACTION_UPDATE

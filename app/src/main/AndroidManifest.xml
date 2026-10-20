@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Para poder lanzar apps de musica en API 30+ -->
+    <queries>
+        <package android:name="com.spotify.music"/>
+        <package android:name="com.google.android.apps.youtube.music"/>
+        <package android:name="app.revanced.android.apps.youtube.music"/>
+        <package android:name="com.vanced.android.apps.youtube.music"/>
+        <package android:name="com.soundcloud.android"/>
+        <package android:name="com.tidal.music"/>
+        <package android:name="code.name.monkey.retromusic"/>
+        <package android:name="com.maxmpz.audioplayer"/>
+        <package android:name="org.videolan.vlc"/>
+        <package android:name="com.dd3boh.outertune"/>
+        <package android:name="app.opentune"/>
+        <package android:name="com.opentune"/>
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_music_note"
