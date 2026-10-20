@@ -14,6 +14,7 @@ import android.os.SystemClock
 import android.provider.Settings
 import android.view.KeyEvent
 import android.widget.RemoteViews
+import androidx.core.app.NotificationManagerCompat
 import java.io.File
 
 class MusicWidgetProvider : AppWidgetProvider() {
@@ -31,15 +32,12 @@ class MusicWidgetProvider : AppWidgetProvider() {
             am.dispatchMediaKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_UP,   keyCode, 0))
         }
 
-        fun hasNotificationAccess(context: Context): Boolean {
-            val cn = ComponentName(context, MusicListenerService::class.java)
-            val enabled = Settings.Secure.getString(
-                context.contentResolver, "enabled_notification_listeners"
-            ) ?: return false
-            return enabled.contains(cn.flattenToString())
-        }
+        /** Chequeo confiable usando NotificationManagerCompat */
+        fun hasNotificationAccess(context: Context): Boolean =
+            NotificationManagerCompat
+                .getEnabledListenerPackages(context)
+                .contains(context.packageName)
 
-        /** Intenta lanzar la ultima app de musica detectada, o un fallback conocido */
         fun launchMusicApp(context: Context, preferredPackage: String?) {
             val pm = context.packageManager
             val candidates = buildList {
@@ -48,9 +46,12 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     "com.google.android.apps.youtube.music",
                     "app.revanced.android.apps.youtube.music",
                     "com.vanced.android.apps.youtube.music",
+                    "dev.jdtech.jellyfin",
                     "com.spotify.music",
                     "com.dd3boh.outertune",
+                    "com.dd3boh.outertune.debug",
                     "app.opentune",
+                    "com.opentune",
                     "code.name.monkey.retromusic",
                     "com.maxmpz.audioplayer",
                     "org.videolan.vlc"
@@ -66,6 +67,14 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     }
                 } catch (e: Exception) { continue }
             }
+
+            // Último fallback: intent genérico de música
+            try {
+                context.startActivity(Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_APP_MUSIC)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
@@ -85,7 +94,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
         when (intent.action) {
             ACTION_PLAY_PAUSE -> {
                 sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-                // Si no habia musica sonando, intentar revivir la app
                 if (!prefs.getBoolean("playing", false)) {
                     launchMusicApp(context, prefs.getString("music_package", null))
                 }
@@ -101,21 +109,22 @@ class MusicWidgetProvider : AppWidgetProvider() {
     }
 
     private fun renderWidget(context: Context, manager: AppWidgetManager, id: Int) {
-        val p       = context.getSharedPreferences("mw_prefs", Context.MODE_PRIVATE)
-        val options  = manager.getAppWidgetOptions(id)
-        val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
+        val options   = manager.getAppWidgetOptions(id)
+        val minWidth  = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
         val layoutRes = if (minWidth < 200) R.layout.widget_music_small else R.layout.widget_music
         val v = RemoteViews(context.packageName, layoutRes)
 
-        // Sin permiso: widget guia al usuario
+        // Limpiar cualquier click residual del root desde renders anteriores
+        v.setOnClickPendingIntent(R.id.widgetRoot, null)
+
         if (!hasNotificationAccess(context)) {
             v.setTextViewText(R.id.songTitle,  "tap para activar")
             v.setTextViewText(R.id.artistName, "necesita acceso a notificaciones")
-            val settingsIntent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
             val pi = PendingIntent.getActivity(
-                context, 99, settingsIntent,
+                context, 99,
+                Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             v.setOnClickPendingIntent(R.id.widgetRoot, pi)
@@ -123,6 +132,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
             return
         }
 
+        val p       = context.getSharedPreferences("mw_prefs", Context.MODE_PRIVATE)
         val title   = p.getString("title",  "No music playing") ?: "No music playing"
         val artist  = p.getString("artist", "") ?: ""
         val playing = p.getBoolean("playing", false)
@@ -141,7 +151,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
             v.setImageViewResource(R.id.albumArt, R.drawable.ic_music_note)
         }
 
-        // Monet en API 31+
         if (Build.VERSION.SDK_INT >= 31) {
             val textPrimary   = context.getColor(android.R.color.system_neutral1_50)
             val textSecondary = context.getColor(android.R.color.system_neutral2_300)
