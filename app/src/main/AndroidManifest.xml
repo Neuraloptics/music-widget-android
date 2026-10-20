@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Para poder lanzar apps de musica en API 30+ -->
     <queries>
         <package android:name="com.spotify.music"/>
         <package android:name="com.google.android.apps.youtube.music"/>
@@ -19,7 +18,8 @@
 
     <application
         android:allowBackup="false"
-        android:icon="@drawable/ic_music_note"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="Music Widget"
         android:theme="@android:style/Theme.DeviceDefault">
 
@@ -32,6 +32,7 @@
                 <action android:name="com.musicwidget.NEXT"/>
                 <action android:name="com.musicwidget.PREV"/>
                 <action android:name="com.musicwidget.UPDATE"/>
+                <action android:name="com.musicwidget.OPEN_APP"/>
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

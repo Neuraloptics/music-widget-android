@@ -24,6 +24,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
         const val ACTION_NEXT       = "com.musicwidget.NEXT"
         const val ACTION_PREV       = "com.musicwidget.PREV"
         const val ACTION_UPDATE     = "com.musicwidget.UPDATE"
+        const val ACTION_OPEN_APP   = "com.musicwidget.OPEN_APP"
 
         fun sendMediaKey(context: Context, keyCode: Int) {
             val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -32,7 +33,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
             am.dispatchMediaKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_UP,   keyCode, 0))
         }
 
-        /** Chequeo confiable usando NotificationManagerCompat */
         fun hasNotificationAccess(context: Context): Boolean =
             NotificationManagerCompat
                 .getEnabledListenerPackages(context)
@@ -46,18 +46,15 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     "com.google.android.apps.youtube.music",
                     "app.revanced.android.apps.youtube.music",
                     "com.vanced.android.apps.youtube.music",
-                    "dev.jdtech.jellyfin",
                     "com.spotify.music",
                     "com.dd3boh.outertune",
                     "com.dd3boh.outertune.debug",
-                    "app.opentune",
-                    "com.opentune",
+                    "app.opentune", "com.opentune",
                     "code.name.monkey.retromusic",
                     "com.maxmpz.audioplayer",
                     "org.videolan.vlc"
                 ))
             }.distinct()
-
             for (pkg in candidates) {
                 try {
                     pm.getLaunchIntentForPackage(pkg)?.let { intent ->
@@ -67,8 +64,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     }
                 } catch (e: Exception) { continue }
             }
-
-            // Último fallback: intent genérico de música
             try {
                 context.startActivity(Intent(Intent.ACTION_MAIN).apply {
                     addCategory(Intent.CATEGORY_APP_MUSIC)
@@ -98,9 +93,10 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     launchMusicApp(context, prefs.getString("music_package", null))
                 }
             }
-            ACTION_NEXT -> sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_NEXT)
-            ACTION_PREV -> sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
-            ACTION_UPDATE -> {
+            ACTION_NEXT     -> sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_NEXT)
+            ACTION_PREV     -> sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+            ACTION_OPEN_APP -> launchMusicApp(context, prefs.getString("music_package", null))
+            ACTION_UPDATE   -> {
                 val mgr = AppWidgetManager.getInstance(context)
                 val ids = mgr.getAppWidgetIds(ComponentName(context, MusicWidgetProvider::class.java))
                 for (id in ids) renderWidget(context, mgr, id)
@@ -114,7 +110,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val layoutRes = if (minWidth < 200) R.layout.widget_music_small else R.layout.widget_music
         val v = RemoteViews(context.packageName, layoutRes)
 
-        // Limpiar cualquier click residual del root desde renders anteriores
         v.setOnClickPendingIntent(R.id.widgetRoot, null)
 
         if (!hasNotificationAccess(context)) {
@@ -150,6 +145,14 @@ class MusicWidgetProvider : AppWidgetProvider() {
         } else {
             v.setImageViewResource(R.id.albumArt, R.drawable.ic_music_note)
         }
+
+        // Tap en portada abre la app de musica
+        val openAppPi = PendingIntent.getBroadcast(
+            context, 3,
+            Intent(context, MusicWidgetProvider::class.java).apply { action = ACTION_OPEN_APP },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        v.setOnClickPendingIntent(R.id.albumArt, openAppPi)
 
         if (Build.VERSION.SDK_INT >= 31) {
             val textPrimary   = context.getColor(android.R.color.system_neutral1_50)
