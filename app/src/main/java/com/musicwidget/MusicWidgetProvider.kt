@@ -89,7 +89,10 @@ class MusicWidgetProvider : AppWidgetProvider() {
         when (intent.action) {
             ACTION_PLAY_PAUSE -> {
                 sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-                if (!prefs.getBoolean("playing", false)) {
+                // FIX: usar has_session en lugar de !playing
+                // solo lanzar la app si no hay ninguna sesion de musica activa (ni en pausa)
+                val hasSession = prefs.getBoolean("has_session", false)
+                if (!hasSession) {
                     launchMusicApp(context, prefs.getString("music_package", null))
                 }
             }
@@ -146,7 +149,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
             v.setImageViewResource(R.id.albumArt, R.drawable.ic_music_note)
         }
 
-        // Tap en portada abre la app de musica
         val openAppPi = PendingIntent.getBroadcast(
             context, 3,
             Intent(context, MusicWidgetProvider::class.java).apply { action = ACTION_OPEN_APP },

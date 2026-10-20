@@ -16,7 +16,6 @@ import java.io.FileOutputStream
 class MusicListenerService : NotificationListenerService() {
 
     companion object {
-        // Apps conocidas de musica — fallback si no hay MediaSession
         val MUSIC_PACKAGES = setOf(
             "com.spotify.music",
             "com.google.android.apps.youtube.music",
@@ -56,6 +55,10 @@ class MusicListenerService : NotificationListenerService() {
             )
             refresh()
         } catch (e: Exception) { e.printStackTrace() }
+        // FIX: notificar al widget que el permiso ya fue otorgado
+        sendBroadcast(Intent(this, MusicWidgetProvider::class.java).apply {
+            action = MusicWidgetProvider.ACTION_UPDATE
+        })
     }
 
     override fun onListenerDisconnected() {
@@ -74,7 +77,7 @@ class MusicListenerService : NotificationListenerService() {
             val active = try { activeNotifications } catch (e: Exception) { null }
             active?.firstOrNull { isRealMediaNotification(it) }?.let {
                 tryFromNotification(it)
-            } ?: persist("No music playing", "", false, null, null)
+            } ?: persist("No music playing", "", false, null, null, hasSession = false)
         }
     }
 
@@ -89,11 +92,9 @@ class MusicListenerService : NotificationListenerService() {
         } catch (e: Exception) { false }
     }
 
-    /** Solo notificaciones con MediaStyle real — filtra Mercado Pago y similares */
     private fun isRealMediaNotification(sbn: StatusBarNotification): Boolean {
         val extras = sbn.notification?.extras ?: return false
         val template = extras.getString("android.template") ?: ""
-        // debe tener MediaStyle O ser de app de musica conocida
         return template.contains("MediaStyle", ignoreCase = true)
             || sbn.packageName in MUSIC_PACKAGES
     }
@@ -118,7 +119,7 @@ class MusicListenerService : NotificationListenerService() {
             }
         } catch (e: Exception) { null }
 
-        persist(title, artist, playing, art, sbn.packageName)
+        persist(title, artist, playing, art, sbn.packageName, hasSession = true)
     }
 
     private fun handleControllers(controllers: List<MediaController>?) {
@@ -136,14 +137,18 @@ class MusicListenerService : NotificationListenerService() {
         val rawArt  = meta?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
                    ?: meta?.getBitmap(MediaMetadata.METADATA_KEY_ART)
         val art     = rawArt?.let { Bitmap.createScaledBitmap(it, 120, 120, true) }
-        persist(title, artist, playing, art, ctrl.packageName)
+        persist(title, artist, playing, art, ctrl.packageName, hasSession = true)
     }
 
-    private fun persist(title: String, artist: String, playing: Boolean, art: Bitmap?, musicPackage: String?) {
+    private fun persist(
+        title: String, artist: String, playing: Boolean,
+        art: Bitmap?, musicPackage: String?, hasSession: Boolean
+    ) {
         getSharedPreferences("mw_prefs", Context.MODE_PRIVATE).edit()
             .putString("title",   title)
             .putString("artist",  artist)
             .putBoolean("playing", playing)
+            .putBoolean("has_session", hasSession)  // FIX: flag separado para "hay sesion activa"
             .apply { musicPackage?.let { putString("music_package", it) } }
             .apply()
 
@@ -151,7 +156,7 @@ class MusicListenerService : NotificationListenerService() {
         if (art != null) {
             try { FileOutputStream(artFile).use { art.compress(Bitmap.CompressFormat.PNG, 80, it) } }
             catch (e: Exception) { e.printStackTrace() }
-        } else { artFile.delete() }
+        } else if (!hasSession) { artFile.delete() }
 
         sendBroadcast(Intent(this, MusicWidgetProvider::class.java).apply {
             action = MusicWidgetProvider.ACTION_UPDATE

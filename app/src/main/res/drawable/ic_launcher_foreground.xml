@@ -5,30 +5,43 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- N izquierda -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#A78BFA"
-        android:strokeWidth="7.5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M22,76 L22,24 L54,63 L54,24"/>
+    <!--
+        FIX: contenido escalado al 60% desde el centro (pivot 54,54)
+        safe zone del adaptive icon = 72dp central (18dp de margen cada lado)
+        con scale 0.6 todo queda bien adentro del circulo
+    -->
+    <group
+        android:scaleX="0.6"
+        android:scaleY="0.6"
+        android:pivotX="54"
+        android:pivotY="54">
 
-    <!-- N derecha -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#A78BFA"
-        android:strokeWidth="7.5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M54,63 L86,24 L86,76"/>
+        <!-- N izquierda -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#A78BFA"
+            android:strokeWidth="7.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M22,76 L22,24 L54,63 L54,24"/>
 
-    <!-- onda debajo -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#89B4FA"
-        android:strokeWidth="3.5"
-        android:strokeLineCap="round"
-        android:pathData="M22,87 Q38,79 54,87 Q70,95 86,87"/>
+        <!-- N derecha -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#A78BFA"
+            android:strokeWidth="7.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M54,63 L86,24 L86,76"/>
+
+        <!-- onda debajo -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#89B4FA"
+            android:strokeWidth="3.5"
+            android:strokeLineCap="round"
+            android:pathData="M22,87 Q38,79 54,87 Q70,95 86,87"/>
+
+    </group>
 
 </vector>
