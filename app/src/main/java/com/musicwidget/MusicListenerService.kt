@@ -8,6 +8,7 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.os.Handler
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import java.io.File
@@ -38,6 +39,11 @@ class MusicListenerService : NotificationListenerService() {
             "com.listenbrainz.android",
             "com.musicplayer.mp3player"
         )
+
+        // FIX play/pause: referencia al controller activo
+        // usada por MusicWidgetProvider para TransportControls sin abrir la app
+        var activeController: MediaController? = null
+            private set
     }
 
     private var sessionMgr: MediaSessionManager? = null
@@ -55,13 +61,19 @@ class MusicListenerService : NotificationListenerService() {
             )
             refresh()
         } catch (e: Exception) { e.printStackTrace() }
-        // FIX: notificar al widget que el permiso ya fue otorgado
-        sendBroadcast(Intent(this, MusicWidgetProvider::class.java).apply {
+
+        // FIX permiso: broadcast doble — inmediato + delay 800ms
+        // el sistema puede tardar en reflejar el nuevo permiso en getEnabledListenerPackages
+        // el segundo broadcast cae cuando ya está registrado y el widget se actualiza solo
+        val makeIntent = { Intent(this, MusicWidgetProvider::class.java).apply {
             action = MusicWidgetProvider.ACTION_UPDATE
-        })
+        }}
+        sendBroadcast(makeIntent())
+        Handler(mainLooper).postDelayed({ sendBroadcast(makeIntent()) }, 800)
     }
 
     override fun onListenerDisconnected() {
+        activeController = null
         sessionMgr?.removeOnActiveSessionsChangedListener(sessionsListener)
         super.onListenerDisconnected()
     }
@@ -124,11 +136,16 @@ class MusicListenerService : NotificationListenerService() {
 
     private fun handleControllers(controllers: List<MediaController>?) {
         val ctrl = controllers?.firstOrNull()
-        if (ctrl == null) { refresh(); return }
+        if (ctrl == null) {
+            activeController = null
+            refresh()
+            return
+        }
         handleController(ctrl)
     }
 
     private fun handleController(ctrl: MediaController) {
+        activeController = ctrl  // guardamos referencia para TransportControls
         val meta    = ctrl.metadata
         val title   = meta?.getString(MediaMetadata.METADATA_KEY_TITLE) ?: "Unknown"
         val artist  = meta?.getString(MediaMetadata.METADATA_KEY_ARTIST)
@@ -148,7 +165,7 @@ class MusicListenerService : NotificationListenerService() {
             .putString("title",   title)
             .putString("artist",  artist)
             .putBoolean("playing", playing)
-            .putBoolean("has_session", hasSession)  // FIX: flag separado para "hay sesion activa"
+            .putBoolean("has_session", hasSession)
             .apply { musicPackage?.let { putString("music_package", it) } }
             .apply()
 

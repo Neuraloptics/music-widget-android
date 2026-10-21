@@ -8,8 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.media.AudioManager
+import android.media.session.PlaybackState
 import android.os.Build
-import android.os.Bundle
 import android.os.SystemClock
 import android.provider.Settings
 import android.view.KeyEvent
@@ -78,7 +78,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onAppWidgetOptionsChanged(
-        context: Context, manager: AppWidgetManager, widgetId: Int, newOptions: Bundle
+        context: Context, manager: AppWidgetManager, widgetId: Int, newOptions: android.os.Bundle
     ) {
         renderWidget(context, manager, widgetId)
     }
@@ -88,12 +88,28 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val prefs = context.getSharedPreferences("mw_prefs", Context.MODE_PRIVATE)
         when (intent.action) {
             ACTION_PLAY_PAUSE -> {
-                sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-                // FIX: usar has_session en lugar de !playing
-                // solo lanzar la app si no hay ninguna sesion de musica activa (ni en pausa)
                 val hasSession = prefs.getBoolean("has_session", false)
-                if (!hasSession) {
-                    launchMusicApp(context, prefs.getString("music_package", null))
+                val ctrl = MusicListenerService.activeController
+
+                if (ctrl != null && hasSession) {
+                    // FIX: TransportControls en vez de KeyEvent
+                    // KeyEvent puede hacer que la app salte al frente — TransportControls no
+                    try {
+                        val state = ctrl.playbackState?.state
+                        if (state == PlaybackState.STATE_PLAYING) {
+                            ctrl.transportControls.pause()
+                        } else {
+                            ctrl.transportControls.play()
+                        }
+                    } catch (e: Exception) {
+                        // controller invalidado, fallback
+                        sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+                    }
+                } else {
+                    sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+                    if (!hasSession) {
+                        launchMusicApp(context, prefs.getString("music_package", null))
+                    }
                 }
             }
             ACTION_NEXT     -> sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_NEXT)
