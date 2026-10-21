@@ -10,8 +10,10 @@ import android.graphics.BitmapFactory
 import android.media.AudioManager
 import android.media.session.PlaybackState
 import android.os.Build
+import android.os.Bundle
 import android.os.SystemClock
 import android.provider.Settings
+import android.util.SizeF
 import android.view.KeyEvent
 import android.widget.RemoteViews
 import androidx.core.app.NotificationManagerCompat
@@ -49,7 +51,10 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     "com.spotify.music",
                     "com.dd3boh.outertune",
                     "com.dd3boh.outertune.debug",
-                    "app.opentune", "com.opentune",
+                    "app.opentune",
+                    "com.opentune",
+                    "com.tana404.opentune",
+                    "com.abhiram.opentune",
                     "code.name.monkey.retromusic",
                     "com.maxmpz.audioplayer",
                     "org.videolan.vlc"
@@ -64,12 +69,8 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     }
                 } catch (e: Exception) { continue }
             }
-            try {
-                context.startActivity(Intent(Intent.ACTION_MAIN).apply {
-                    addCategory(Intent.CATEGORY_APP_MUSIC)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                })
-            } catch (e: Exception) { e.printStackTrace() }
+            // FIX Vivaldi: eliminado el fallback CATEGORY_APP_MUSIC que abría cualquier cosa
+            // si no se encuentra ninguna app conocida, no se hace nada
         }
     }
 
@@ -78,7 +79,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onAppWidgetOptionsChanged(
-        context: Context, manager: AppWidgetManager, widgetId: Int, newOptions: android.os.Bundle
+        context: Context, manager: AppWidgetManager, widgetId: Int, newOptions: Bundle
     ) {
         renderWidget(context, manager, widgetId)
     }
@@ -90,10 +91,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
             ACTION_PLAY_PAUSE -> {
                 val hasSession = prefs.getBoolean("has_session", false)
                 val ctrl = MusicListenerService.activeController
-
                 if (ctrl != null && hasSession) {
-                    // FIX: TransportControls en vez de KeyEvent
-                    // KeyEvent puede hacer que la app salte al frente — TransportControls no
                     try {
                         val state = ctrl.playbackState?.state
                         if (state == PlaybackState.STATE_PLAYING) {
@@ -102,7 +100,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
                             ctrl.transportControls.play()
                         }
                     } catch (e: Exception) {
-                        // controller invalidado, fallback
                         sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
                     }
                 } else {
@@ -124,14 +121,9 @@ class MusicWidgetProvider : AppWidgetProvider() {
     }
 
     private fun renderWidget(context: Context, manager: AppWidgetManager, id: Int) {
-        val options   = manager.getAppWidgetOptions(id)
-        val minWidth  = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
-        val layoutRes = if (minWidth < 200) R.layout.widget_music_small else R.layout.widget_music
-        val v = RemoteViews(context.packageName, layoutRes)
-
-        v.setOnClickPendingIntent(R.id.widgetRoot, null)
-
+        // pantalla de permiso: siempre en layout full independiente del tamaño
         if (!hasNotificationAccess(context)) {
+            val v = RemoteViews(context.packageName, R.layout.widget_music)
             v.setTextViewText(R.id.songTitle,  "tap para activar")
             v.setTextViewText(R.id.artistName, "necesita acceso a notificaciones")
             val pi = PendingIntent.getActivity(
@@ -146,11 +138,36 @@ class MusicWidgetProvider : AppWidgetProvider() {
             return
         }
 
+        if (Build.VERSION.SDK_INT >= 31) {
+            // API 31+: RemoteViews responsivo con múltiples layouts
+            // Android elige el layout según el tamaño real y ANIMA la transición en resize
+            val views = RemoteViews(mapOf(
+                SizeF(100f,  50f) to buildViews(context, R.layout.widget_music_micro),
+                SizeF(140f,  50f) to buildViews(context, R.layout.widget_music_small),
+                SizeF(250f, 100f) to buildViews(context, R.layout.widget_music)
+            ))
+            manager.updateAppWidget(id, views)
+        } else {
+            val options   = manager.getAppWidgetOptions(id)
+            val minWidth  = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
+            val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 100)
+            val layoutRes = when {
+                minWidth  < 140               -> R.layout.widget_music_micro
+                minWidth  < 250 || minHeight < 100 -> R.layout.widget_music_small
+                else                          -> R.layout.widget_music
+            }
+            manager.updateAppWidget(id, buildViews(context, layoutRes))
+        }
+    }
+
+    private fun buildViews(context: Context, layoutRes: Int): RemoteViews {
+        val v = RemoteViews(context.packageName, layoutRes)
         val p       = context.getSharedPreferences("mw_prefs", Context.MODE_PRIVATE)
         val title   = p.getString("title",  "No music playing") ?: "No music playing"
         val artist  = p.getString("artist", "") ?: ""
         val playing = p.getBoolean("playing", false)
 
+        v.setOnClickPendingIntent(R.id.widgetRoot, null)
         v.setTextViewText(R.id.songTitle,  title)
         v.setTextViewText(R.id.artistName, artist)
         v.setImageViewResource(R.id.btnPlayPause,
@@ -193,6 +210,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
         v.setOnClickPendingIntent(R.id.btnPrev,      pi(1, ACTION_PREV))
         v.setOnClickPendingIntent(R.id.btnNext,      pi(2, ACTION_NEXT))
 
-        manager.updateAppWidget(id, v)
+        return v
     }
 }

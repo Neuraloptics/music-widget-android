@@ -5,13 +5,17 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:orientation="horizontal"
-    android:padding="12dp"
+    android:padding="8dp"
     android:gravity="center_vertical">
 
+    <!-- carátula adaptativa al alto del widget -->
     <ImageView
         android:id="@+id/albumArt"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:adjustViewBounds="true"
+        android:minWidth="40dp"
+        android:maxWidth="64dp"
         android:scaleType="centerCrop"
         android:background="@drawable/album_art_bg"
         android:src="@drawable/ic_music_note"/>
@@ -22,14 +26,15 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:layout_marginStart="10dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginEnd="6dp"
         android:text="No music playing"
         android:textColor="#FFFFFFFF"
         android:textSize="12sp"
         android:textStyle="bold"
-        android:maxLines="2"
+        android:maxLines="1"
         android:ellipsize="end"/>
 
+    <!-- invisible pero necesario para que el provider no falle -->
     <TextView
         android:id="@+id/artistName"
         android:layout_width="0dp"
@@ -38,23 +43,29 @@
 
     <ImageView
         android:id="@+id/btnPrev"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone"/>
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_skip_previous"
+        android:scaleType="centerInside"
+        android:padding="4dp"/>
 
     <ImageView
         android:id="@+id/btnPlayPause"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:src="@drawable/ic_play"
         android:background="@drawable/play_btn_bg"
         android:scaleType="centerInside"
-        android:padding="10dp"/>
+        android:padding="9dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"/>
 
     <ImageView
         android:id="@+id/btnNext"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone"/>
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_skip_next"
+        android:scaleType="centerInside"
+        android:padding="4dp"/>
 
 </LinearLayout>
