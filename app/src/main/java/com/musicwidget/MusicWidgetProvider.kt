@@ -33,6 +33,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
         const val ACTION_OPEN_APP   = "com.musicwidget.OPEN_APP"
         const val ACTION_SHUFFLE    = "com.musicwidget.SHUFFLE"
         const val ACTION_REPEAT     = "com.musicwidget.REPEAT"
+        const val ACTION_TEST       = "com.musicwidget.TEST_INFLATE"
 
         fun sendMediaKey(context: Context, keyCode: Int) {
             val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -194,7 +195,34 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 refreshWidgets(context)
             }
             ACTION_UPDATE   -> refreshWidgets(context)
+            ACTION_TEST     -> runInflateTest(context)
         }
+    }
+
+    private fun runInflateTest(context: Context) {
+        val sb = StringBuilder()
+        val layouts = listOf(
+            R.layout.widget_music,
+            R.layout.widget_music_small,
+            R.layout.widget_music_micro
+        )
+        for (res in layouts) {
+            try {
+                val v = buildViews(context, res)
+                v.apply(context, android.widget.FrameLayout(context))
+                sb.append("OK buildViews+apply res=").append(res).append("
+")
+            } catch (t: Throwable) {
+                sb.append("FAIL res=").append(res).append(": ")
+                  .append(t.javaClass.name).append(": ").append(t.message).append("
+")
+                sb.append(t.stackTraceToString()).append("
+")
+            }
+        }
+        try {
+            java.io.File(context.filesDir, "inflate_test.txt").writeText(sb.toString())
+        } catch (t: Throwable) { }
     }
 
     private fun refreshWidgets(context: Context) {
