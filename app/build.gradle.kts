@@ -15,6 +15,18 @@ android {
         versionName   = "1.8"
     }
 
+    signingConfigs {
+        create("release") {
+            val path = System.getenv("SIGNING_KEY_PATH")
+            if (path != null) {
+                storeFile = java.io.File(path)
+                storePassword = System.getenv("SIGNING_STORE_PASSWORD")
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            }
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -25,6 +37,9 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            if (System.getenv("SIGNING_KEY_PATH") != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
