@@ -164,7 +164,7 @@ class MusicListenerService : NotificationListenerService() {
         val state   = ctrl.playbackState
         val playing = state?.state == PlaybackState.STATE_PLAYING
         val position = state?.position ?: 0L
-        val duration = state?.duration ?: -1L
+        val duration = meta?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: -1L
         val rawArt  = meta?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
                    ?: meta?.getBitmap(MediaMetadata.METADATA_KEY_ART)
         val art     = rawArt?.let { roundCorners(scaleArt(it)) }
