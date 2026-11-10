@@ -69,6 +69,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
             val candidates = buildList {
                 preferredPackage?.let { add(it) }
                 addAll(listOf(
+                    "com.prism.music",
                     "com.google.android.apps.youtube.music",
                     "app.revanced.android.apps.youtube.music",
                     "com.vanced.android.apps.youtube.music",
@@ -93,6 +94,18 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     }
                 } catch (e: Exception) { continue }
             }
+            // último recurso: preguntar al sistema qué app de música hay
+            try {
+                val probe = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MUSIC)
+                for (info in pm.queryIntentActivities(probe, 0)) {
+                    val pkg = info.activityInfo.packageName
+                    pm.getLaunchIntentForPackage(pkg)?.let { intent ->
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                        return
+                    }
+                }
+            } catch (e: Exception) { }
         }
     }
 
@@ -125,10 +138,9 @@ class MusicWidgetProvider : AppWidgetProvider() {
                         sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
                     }
                 } else {
-                    sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-                    if (!hasSession) {
-                        launchMusicApp(context, prefs.getString("music_package", null))
-                    }
+                    // sin sesión activa no hay a quién mandarle la tecla:
+                    // abrimos directamente la app de música
+                    launchMusicApp(context, prefs.getString("music_package", null))
                 }
             }
             ACTION_NEXT     -> sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_NEXT)
@@ -188,7 +200,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
             val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 100)
             val layoutRes = when {
                 minWidth  < 140               -> R.layout.widget_music_micro
-                minWidth  < 250 || minHeight < 100 -> R.layout.widget_music_small
+                minWidth  < 250 || minHeight < 90 -> R.layout.widget_music_small
                 else                          -> R.layout.widget_music
             }
             manager.updateAppWidget(id, buildViews(context, layoutRes))

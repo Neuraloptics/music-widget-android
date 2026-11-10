@@ -24,6 +24,7 @@ class MusicListenerService : NotificationListenerService() {
 
     companion object {
         val MUSIC_PACKAGES = setOf(
+            "com.prism.music",
             "com.spotify.music",
             "com.google.android.apps.youtube.music",
             "app.revanced.android.apps.youtube.music",

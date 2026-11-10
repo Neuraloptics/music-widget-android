@@ -8,14 +8,11 @@
     android:padding="10dp"
     android:gravity="center_vertical">
 
-    <!-- portada adaptativa -->
+    <!-- portada cuadrada para que el redondeo no se recorte -->
     <ImageView
         android:id="@+id/albumArt"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:adjustViewBounds="true"
-        android:minWidth="52dp"
-        android:maxWidth="84dp"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
         android:scaleType="centerCrop"
         android:background="@drawable/album_art_bg"
         android:src="@drawable/ic_music_note"/>
