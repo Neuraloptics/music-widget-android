@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<alpha xmlns:android="http://schemas.android.com/apk/res/android"
-    android:alpha="0.22">
-    <shape android:shape="oval">
-        <solid android:color="@android:color/system_accent1_200"/>
-    </shape>
-</alpha>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#2BFFFFFF"/>
+</shape>
