@@ -97,7 +97,7 @@
             android:scaleType="centerInside"
             android:padding="6dp"/>
 
-        <Space
+        <View
             android:layout_width="0dp"
             android:layout_height="1dp"
             android:layout_weight="1"/>
@@ -131,7 +131,7 @@
             android:scaleType="centerInside"
             android:padding="9dp"/>
 
-        <Space
+        <View
             android:layout_width="0dp"
             android:layout_height="1dp"
             android:layout_weight="1"/>
