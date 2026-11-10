@@ -6,11 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Path
 import android.media.AudioManager
 import android.media.session.PlaybackState
 import android.os.Build
@@ -66,38 +62,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     .getMethod("setRepeatMode", java.lang.Integer.TYPE)
                     .invoke(tc, mode)
             } catch (e: Exception) { /* el player no lo soporta */ }
-        }
-
-        // onda M3 Expressive dibujada como bitmap (no depende de ProgressBar/drawables raros)
-        fun waveBitmap(progress: Float, accent: Int): Bitmap {
-            val w = 720
-            val h = 28
-            val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bmp)
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = h * 0.22f
-                strokeCap = Paint.Cap.ROUND
-            }
-            val path = Path()
-            val cy = h / 2f
-            val amp = h * 0.32f
-            val period = 68f
-            path.moveTo(0f, cy)
-            var x = 0f
-            while (x < w - period) {
-                val nx = x + period
-                path.cubicTo(x + period * 0.25f, cy - amp, x + period * 0.75f, cy + amp, nx, cy)
-                x = nx
-            }
-            paint.color = 0x33FFFFFF
-            canvas.drawPath(path, paint)
-            canvas.save()
-            canvas.clipRect(0f, 0f, w * progress.coerceIn(0f, 1f), h.toFloat())
-            paint.color = accent
-            canvas.drawPath(path, paint)
-            canvas.restore()
-            return bmp
         }
 
         fun launchMusicApp(context: Context, preferredPackage: String?) {
@@ -163,6 +127,9 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 val hasSession = prefs.getBoolean("has_session", false)
                 val ctrl = MusicListenerService.activeController
                 if (ctrl != null && hasSession) {
+                    // feedback inmediato del icono; el service confirma despues
+                    prefs.edit().putBoolean("playing", !prefs.getBoolean("playing", false)).apply()
+                    refreshWidgets(context)
                     try {
                         val state = ctrl.playbackState?.state
                         if (state == PlaybackState.STATE_PLAYING) {
@@ -278,8 +245,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val playing = p.getBoolean("playing", false)
         val shuffle = p.getBoolean("shuffle", false)
         val repeat  = p.getInt("repeat", 0)
-        val duration = p.getLong("duration", -1L)
-        val position = p.getLong("position", 0L)
 
         val subtitle = when {
             artist.isBlank() -> album
@@ -327,12 +292,8 @@ class MusicWidgetProvider : AppWidgetProvider() {
             accentOn = 0xFF000000.toInt()
             dim      = 0x66FFFFFF
         }
-        v.setInt(R.id.btnPrev,      "setColorFilter", accentOn)
-        v.setInt(R.id.btnNext,      "setColorFilter", accentOn)
-
-        // onda: snapshot del progreso, sin timers
-        val progressF = if (duration > 0) (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f) else 0f
-        v.setImageViewBitmap(R.id.songProgress, waveBitmap(progressF, accent))
+        v.setInt(R.id.btnPrev,      "setColorFilter", accent)
+        v.setInt(R.id.btnNext,      "setColorFilter", accent)
         v.setInt(R.id.btnPlayPause, "setColorFilter", accentOn)
         v.setInt(R.id.btnShuffle,   "setColorFilter", if (shuffle) accent else dim)
         v.setInt(R.id.btnRepeat,    "setColorFilter", if (repeat != 0) accent else dim)

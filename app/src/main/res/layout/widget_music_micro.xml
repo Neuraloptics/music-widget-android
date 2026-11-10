@@ -61,10 +61,5 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:visibility="gone"/>
-    <ImageView
-        android:id="@+id/songProgress"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone"/>
 
 </FrameLayout>

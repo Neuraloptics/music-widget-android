@@ -11,55 +11,29 @@
     <!-- portada -->
     <ImageView
         android:id="@+id/albumArt"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
+        android:layout_width="76dp"
+        android:layout_height="76dp"
         android:scaleType="centerCrop"
         android:background="@drawable/album_art_bg"
         android:src="@drawable/ic_music_note"/>
 
-    <!-- centro: shuffle/repeat, texto, onda -->
+    <!-- texto -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="10dp"
-        android:layout_marginEnd="6dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="8dp"
         android:orientation="vertical"
         android:gravity="center_vertical">
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <ImageView
-                android:id="@+id/btnShuffle"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:src="@drawable/ic_shuffle"
-                android:scaleType="centerInside"
-                android:padding="6dp"/>
-
-            <ImageView
-                android:id="@+id/btnRepeat"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginStart="4dp"
-                android:src="@drawable/ic_repeat"
-                android:scaleType="centerInside"
-                android:padding="6dp"/>
-
-        </LinearLayout>
 
         <TextView
             android:id="@+id/songTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
             android:text="No music playing"
             android:textColor="#FFFFFFFF"
-            android:textSize="14sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             android:maxLines="1"
             android:ellipsize="end"/>
@@ -68,58 +42,65 @@
             android:id="@+id/artistName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
             android:text=""
             android:textColor="#B3FFFFFF"
             android:textSize="11sp"
             android:maxLines="1"
             android:ellipsize="end"/>
 
-        <ImageView
-            android:id="@+id/songProgress"
-            android:layout_width="match_parent"
-            android:layout_height="12dp"
-            android:layout_marginTop="5dp"
-            android:scaleType="fitXY"
-            android:contentDescription="Progreso"/>
-
     </LinearLayout>
 
-    <!-- derecha: controles apilados -->
+    <!-- dock de controles -->
     <LinearLayout
-        android:layout_width="48dp"
+        android:layout_width="54dp"
         android:layout_height="wrap_content"
+        android:background="@drawable/dock_bg"
         android:orientation="vertical"
+        android:padding="3dp"
         android:gravity="center">
 
         <ImageView
             android:id="@+id/btnPrev"
             android:layout_width="48dp"
-            android:layout_height="32dp"
+            android:layout_height="34dp"
             android:src="@drawable/ic_skip_previous"
-            android:background="@drawable/btn_round_bg"
+            android:background="@drawable/ripple_cell"
             android:scaleType="centerInside"
-            android:padding="7dp"/>
+            android:padding="8dp"/>
 
         <ImageView
             android:id="@+id/btnPlayPause"
             android:layout_width="48dp"
-            android:layout_height="40dp"
+            android:layout_height="38dp"
             android:layout_marginTop="3dp"
             android:src="@drawable/ic_play"
-            android:background="@drawable/play_btn_bg"
+            android:background="@drawable/play_pill"
             android:scaleType="centerInside"
             android:padding="9dp"/>
 
         <ImageView
             android:id="@+id/btnNext"
             android:layout_width="48dp"
-            android:layout_height="32dp"
+            android:layout_height="34dp"
             android:layout_marginTop="3dp"
             android:src="@drawable/ic_skip_next"
-            android:background="@drawable/btn_round_bg"
+            android:background="@drawable/ripple_cell"
             android:scaleType="centerInside"
-            android:padding="7dp"/>
+            android:padding="8dp"/>
 
     </LinearLayout>
+
+    <!-- mantenidos ocultos para no romper acciones existentes -->
+    <ImageView
+        android:id="@+id/btnShuffle"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"/>
+    <ImageView
+        android:id="@+id/btnRepeat"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"/>
 
 </LinearLayout>
