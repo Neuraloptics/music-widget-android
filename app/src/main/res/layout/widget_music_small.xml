@@ -8,7 +8,6 @@
     android:padding="6dp"
     android:gravity="center_vertical">
 
-    <!-- portada cuadrada (4x1 / 5x1) -->
     <ImageView
         android:id="@+id/albumArt"
         android:layout_width="44dp"
@@ -35,10 +34,7 @@
             android:textSize="11sp"
             android:textStyle="bold"
             android:maxLines="1"
-            android:ellipsize="end"
-            android:autoSizeTextType="uniform"
-            android:autoSizeMinTextSize="9sp"
-            android:autoSizeMaxTextSize="11sp"/>
+            android:ellipsize="end"/>
 
         <TextView
             android:id="@+id/artistName"
@@ -50,17 +46,13 @@
             android:maxLines="1"
             android:ellipsize="end"/>
 
-        <ProgressBar
+        <ImageView
             android:id="@+id/songProgress"
-            style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="8dp"
+            android:layout_height="10dp"
             android:layout_marginTop="2dp"
-            android:minHeight="8dp"
-            android:maxHeight="8dp"
-            android:max="100"
-            android:progress="0"
-            android:progressDrawable="@drawable/wave_progress"/>
+            android:scaleType="fitXY"
+            android:contentDescription="Progreso"/>
 
         <!-- views requeridos por el provider, ocultos en 1 fila -->
         <ImageView

@@ -4,145 +4,121 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
-    android:orientation="vertical"
+    android:orientation="horizontal"
     android:padding="10dp"
-    android:baselineAligned="false">
+    android:gravity="center_vertical">
 
-    <!-- bloque superior: portada + texto + onda (se estira en alto) -->
+    <!-- portada -->
+    <ImageView
+        android:id="@+id/albumArt"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:scaleType="centerCrop"
+        android:background="@drawable/album_art_bg"
+        android:src="@drawable/ic_music_note"/>
+
+    <!-- centro: shuffle/repeat, texto, onda -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:baselineAligned="false">
-
-        <ImageView
-            android:id="@+id/albumArt"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:adjustViewBounds="true"
-            android:maxHeight="110dp"
-            android:minWidth="48dp"
-            android:scaleType="fitCenter"
-            android:background="@drawable/album_art_bg"
-            android:src="@drawable/ic_music_note"/>
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="6dp"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="6dp"
-            android:orientation="vertical"
+            android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <TextView
-                android:id="@+id/songTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="No music playing"
-                android:textColor="#FFFFFFFF"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:autoSizeTextType="uniform"
-                android:autoSizeMinTextSize="10sp"
-                android:autoSizeMaxTextSize="15sp"/>
+            <ImageView
+                android:id="@+id/btnShuffle"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_shuffle"
+                android:scaleType="centerInside"
+                android:padding="6dp"/>
 
-            <TextView
-                android:id="@+id/artistName"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text=""
-                android:textColor="#B3FFFFFF"
-                android:textSize="11sp"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:autoSizeTextType="uniform"
-                android:autoSizeMinTextSize="9sp"
-                android:autoSizeMaxTextSize="11sp"/>
-
-            <ProgressBar
-                android:id="@+id/songProgress"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="12dp"
-                android:layout_marginTop="5dp"
-                android:minHeight="12dp"
-                android:maxHeight="12dp"
-                android:max="100"
-                android:progress="0"
-                android:progressDrawable="@drawable/wave_progress"/>
+            <ImageView
+                android:id="@+id/btnRepeat"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginStart="4dp"
+                android:src="@drawable/ic_repeat"
+                android:scaleType="centerInside"
+                android:padding="6dp"/>
 
         </LinearLayout>
 
-    </LinearLayout>
+        <TextView
+            android:id="@+id/songTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="No music playing"
+            android:textColor="#FFFFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"/>
 
-    <!-- controles abajo, distribuidos a lo ancho -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:baselineAligned="false">
+        <TextView
+            android:id="@+id/artistName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#B3FFFFFF"
+            android:textSize="11sp"
+            android:maxLines="1"
+            android:ellipsize="end"/>
 
         <ImageView
-            android:id="@+id/btnShuffle"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_shuffle"
-            android:scaleType="centerInside"
-            android:padding="6dp"/>
+            android:id="@+id/songProgress"
+            android:layout_width="match_parent"
+            android:layout_height="12dp"
+            android:layout_marginTop="5dp"
+            android:scaleType="fitXY"
+            android:contentDescription="Progreso"/>
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1"/>
+    </LinearLayout>
+
+    <!-- derecha: controles apilados -->
+    <LinearLayout
+        android:layout_width="48dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center">
 
         <ImageView
             android:id="@+id/btnPrev"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
+            android:layout_width="48dp"
+            android:layout_height="32dp"
             android:src="@drawable/ic_skip_previous"
             android:background="@drawable/btn_round_bg"
             android:scaleType="centerInside"
-            android:padding="9dp"/>
+            android:padding="7dp"/>
 
         <ImageView
             android:id="@+id/btnPlayPause"
-            android:layout_width="46dp"
-            android:layout_height="46dp"
+            android:layout_width="48dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="3dp"
             android:src="@drawable/ic_play"
             android:background="@drawable/play_btn_bg"
             android:scaleType="centerInside"
-            android:padding="11dp"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="5dp"/>
+            android:padding="9dp"/>
 
         <ImageView
             android:id="@+id/btnNext"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
+            android:layout_width="48dp"
+            android:layout_height="32dp"
+            android:layout_marginTop="3dp"
             android:src="@drawable/ic_skip_next"
             android:background="@drawable/btn_round_bg"
             android:scaleType="centerInside"
-            android:padding="9dp"/>
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1"/>
-
-        <ImageView
-            android:id="@+id/btnRepeat"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_repeat"
-            android:scaleType="centerInside"
-            android:padding="6dp"/>
+            android:padding="7dp"/>
 
     </LinearLayout>
 
