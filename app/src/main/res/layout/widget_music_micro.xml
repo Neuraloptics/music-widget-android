@@ -22,13 +22,13 @@
     <!-- play/pause centrado -->
     <ImageView
         android:id="@+id/btnPlayPause"
-        android:layout_width="42dp"
-        android:layout_height="42dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_gravity="center"
         android:src="@drawable/ic_play"
         android:background="@drawable/play_btn_bg"
         android:scaleType="centerInside"
-        android:padding="9dp"/>
+        android:padding="11dp"/>
 
     <!-- views requeridos por el provider, ocultos -->
     <TextView
@@ -48,6 +48,22 @@
         android:visibility="gone"/>
     <ImageView
         android:id="@+id/btnNext"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"/>
+    <ImageView
+        android:id="@+id/btnShuffle"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"/>
+    <ImageView
+        android:id="@+id/btnRepeat"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"/>
+    <ProgressBar
+        android:id="@+id/songProgress"
+        style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:visibility="gone"/>

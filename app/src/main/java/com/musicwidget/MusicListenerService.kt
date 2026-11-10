@@ -4,6 +4,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.RectF
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
@@ -13,6 +18,7 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import java.io.File
 import java.io.FileOutputStream
+import java.util.concurrent.Executors
 
 class MusicListenerService : NotificationListenerService() {
 
@@ -40,10 +46,16 @@ class MusicListenerService : NotificationListenerService() {
             "com.musicplayer.mp3player"
         )
 
-        // FIX play/pause: referencia al controller activo
-        // usada por MusicWidgetProvider para TransportControls sin abrir la app
+        const val ART_SIZE = 256
+
+        // Referencia al controller activo (usada por el provider para TransportControls)
         var activeController: MediaController? = null
             private set
+
+        // Album art fuera del hilo principal: nunca bloquea el service
+        private val artExecutor = Executors.newSingleThreadExecutor { r ->
+            Thread(r, "mw-art").apply { isDaemon = true }
+        }
     }
 
     private var sessionMgr: MediaSessionManager? = null
@@ -62,9 +74,7 @@ class MusicListenerService : NotificationListenerService() {
             refresh()
         } catch (e: Exception) { e.printStackTrace() }
 
-        // FIX permiso: broadcast doble — inmediato + delay 800ms
-        // el sistema puede tardar en reflejar el nuevo permiso en getEnabledListenerPackages
-        // el segundo broadcast cae cuando ya está registrado y el widget se actualiza solo
+        // broadcast doble: inmediato + delay 800ms (el permiso puede tardar en reflejarse)
         val makeIntent = { Intent(this, MusicWidgetProvider::class.java).apply {
             action = MusicWidgetProvider.ACTION_UPDATE
         }}
@@ -123,11 +133,11 @@ class MusicListenerService : NotificationListenerService() {
         val art: Bitmap? = try {
             val icon = extras.getParcelable<android.graphics.drawable.Icon>("android.largeIcon")
             icon?.loadDrawable(this)?.let { drawable ->
-                val bmp = Bitmap.createBitmap(120, 120, Bitmap.Config.ARGB_8888)
-                val canvas = android.graphics.Canvas(bmp)
-                drawable.setBounds(0, 0, 120, 120)
+                val bmp = Bitmap.createBitmap(ART_SIZE, ART_SIZE, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bmp)
+                drawable.setBounds(0, 0, ART_SIZE, ART_SIZE)
                 drawable.draw(canvas)
-                bmp
+                roundCorners(bmp)
             }
         } catch (e: Exception) { null }
 
@@ -145,34 +155,72 @@ class MusicListenerService : NotificationListenerService() {
     }
 
     private fun handleController(ctrl: MediaController) {
-        activeController = ctrl  // guardamos referencia para TransportControls
+        activeController = ctrl
         val meta    = ctrl.metadata
         val title   = meta?.getString(MediaMetadata.METADATA_KEY_TITLE) ?: "Unknown"
         val artist  = meta?.getString(MediaMetadata.METADATA_KEY_ARTIST)
                    ?: meta?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST) ?: ""
-        val playing = ctrl.playbackState?.state == PlaybackState.STATE_PLAYING
+        val album   = meta?.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: ""
+        val state   = ctrl.playbackState
+        val playing = state?.state == PlaybackState.STATE_PLAYING
+        val position = state?.position ?: 0L
+        val duration = state?.duration ?: -1L
         val rawArt  = meta?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
                    ?: meta?.getBitmap(MediaMetadata.METADATA_KEY_ART)
-        val art     = rawArt?.let { Bitmap.createScaledBitmap(it, 120, 120, true) }
-        persist(title, artist, playing, art, ctrl.packageName, hasSession = true)
+        val art     = rawArt?.let { roundCorners(scaleArt(it)) }
+        persist(title, artist, playing, art, ctrl.packageName, true, album, position, duration)
+    }
+
+    // esquinas redondeadas estilo M3 Expressive (se calcula una vez por canción)
+    private fun roundCorners(src: Bitmap): Bitmap {
+        val output = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+        val paint  = Paint(Paint.ANTI_ALIAS_FLAG)
+        val rect   = RectF(0f, 0f, src.width.toFloat(), src.height.toFloat())
+        val radius = src.width * 0.14f
+        paint.color = 0xFFFFFFFF.toInt()
+        canvas.drawRoundRect(rect, radius, radius, paint)
+        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+        canvas.drawBitmap(src, 0f, 0f, paint)
+        return output
+    }
+
+    // escala manteniendo aspect ratio, max ART_SIZE de lado
+    private fun scaleArt(src: Bitmap): Bitmap {
+        val maxSide = maxOf(src.width, src.height)
+        if (maxSide <= ART_SIZE) return src
+        val scale = ART_SIZE.toFloat() / maxSide
+        val w = (src.width * scale).toInt().coerceAtLeast(1)
+        val h = (src.height * scale).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(src, w, h, true)
     }
 
     private fun persist(
         title: String, artist: String, playing: Boolean,
-        art: Bitmap?, musicPackage: String?, hasSession: Boolean
+        art: Bitmap?, musicPackage: String?, hasSession: Boolean,
+        album: String = "", position: Long = 0L, duration: Long = -1L
     ) {
         getSharedPreferences("mw_prefs", Context.MODE_PRIVATE).edit()
             .putString("title",   title)
             .putString("artist",  artist)
+            .putString("album",   album)
             .putBoolean("playing", playing)
             .putBoolean("has_session", hasSession)
+            .putLong("position", position)
+            .putLong("duration", duration)
             .apply { musicPackage?.let { putString("music_package", it) } }
             .apply()
 
         val artFile = File(filesDir, "album_art.png")
         if (art != null) {
-            try { FileOutputStream(artFile).use { art.compress(Bitmap.CompressFormat.PNG, 80, it) } }
-            catch (e: Exception) { e.printStackTrace() }
+            artExecutor.execute {
+                try {
+                    val tmp = File(filesDir, "album_art.tmp")
+                    FileOutputStream(tmp).use { art.compress(Bitmap.CompressFormat.PNG, 90, it) }
+                    if (artFile.exists()) artFile.delete()
+                    tmp.renameTo(artFile)
+                } catch (e: Exception) { e.printStackTrace() }
+            }
         } else if (!hasSession) { artFile.delete() }
 
         sendBroadcast(Intent(this, MusicWidgetProvider::class.java).apply {
