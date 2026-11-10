@@ -210,14 +210,11 @@ class MusicWidgetProvider : AppWidgetProvider() {
             try {
                 val v = buildViews(context, res)
                 v.apply(context, android.widget.FrameLayout(context))
-                sb.append("OK buildViews+apply res=").append(res).append("
-")
+                sb.append("OK buildViews+apply res=").append(res).append("\n")
             } catch (t: Throwable) {
                 sb.append("FAIL res=").append(res).append(": ")
-                  .append(t.javaClass.name).append(": ").append(t.message).append("
-")
-                sb.append(t.stackTraceToString()).append("
-")
+                  .append(t.javaClass.name).append(": ").append(t.message).append("\n")
+                sb.append(t.stackTraceToString()).append("\n")
             }
         }
         try {
