@@ -235,14 +235,14 @@ class MusicWidgetProvider : AppWidgetProvider() {
         v.setImageViewResource(R.id.btnRepeat,
             if (repeat == 2) R.drawable.ic_repeat_one else R.drawable.ic_repeat)
 
-        // barra de progreso: snapshot (sin timer, no drena batería)
+        // barra ondulada: snapshot (sin timer). Si no hay duración se muestra la onda vacía.
+        v.setViewVisibility(R.id.songProgress, View.VISIBLE)
         if (duration > 0) {
             val max = duration.toInt().coerceAtLeast(1)
             val prog = position.coerceIn(0L, duration).toInt()
-            v.setViewVisibility(R.id.songProgress, View.VISIBLE)
             v.setProgressBar(R.id.songProgress, max, prog, false)
         } else {
-            v.setViewVisibility(R.id.songProgress, View.GONE)
+            v.setProgressBar(R.id.songProgress, 100, 0, false)
         }
 
         val artFile = File(context.filesDir, "album_art.png")
@@ -277,8 +277,8 @@ class MusicWidgetProvider : AppWidgetProvider() {
             accentOn = 0xFF000000.toInt()
             dim      = 0x66FFFFFF
         }
-        v.setInt(R.id.btnPrev,      "setColorFilter", accent)
-        v.setInt(R.id.btnNext,      "setColorFilter", accent)
+        v.setInt(R.id.btnPrev,      "setColorFilter", accentOn)
+        v.setInt(R.id.btnNext,      "setColorFilter", accentOn)
         v.setInt(R.id.btnPlayPause, "setColorFilter", accentOn)
         v.setInt(R.id.btnShuffle,   "setColorFilter", if (shuffle) accent else dim)
         v.setInt(R.id.btnRepeat,    "setColorFilter", if (repeat != 0) accent else dim)

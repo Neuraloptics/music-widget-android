@@ -4,104 +4,103 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
-    android:orientation="horizontal"
-    android:padding="9dp"
-    android:gravity="center_vertical">
+    android:orientation="vertical"
+    android:padding="10dp"
+    android:baselineAligned="false">
 
-    <!-- portada cuadrada para que el redondeo no se recorte -->
-    <ImageView
-        android:id="@+id/albumArt"
-        android:layout_width="68dp"
-        android:layout_height="68dp"
-        android:scaleType="centerCrop"
-        android:background="@drawable/album_art_bg"
-        android:src="@drawable/ic_music_note"/>
-
+    <!-- bloque superior: portada + texto + onda (se estira en alto) -->
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginStart="11dp"
-        android:layout_marginEnd="7dp"
-        android:orientation="vertical"
-        android:gravity="center_vertical">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:baselineAligned="false">
 
-        <TextView
-            android:id="@+id/songTitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="No music playing"
-            android:textColor="#FFFFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:autoSizeTextType="uniform"
-            android:autoSizeMinTextSize="10sp"
-            android:autoSizeMaxTextSize="14sp"/>
+        <ImageView
+            android:id="@+id/albumArt"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:adjustViewBounds="true"
+            android:maxHeight="110dp"
+            android:minWidth="48dp"
+            android:scaleType="fitCenter"
+            android:background="@drawable/album_art_bg"
+            android:src="@drawable/ic_music_note"/>
 
-        <TextView
-            android:id="@+id/artistName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textColor="#B3FFFFFF"
-            android:textSize="11sp"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:autoSizeTextType="uniform"
-            android:autoSizeMinTextSize="9sp"
-            android:autoSizeMaxTextSize="11sp"/>
-
-        <!-- shuffle + barra ondulada + repeat -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="4dp">
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="6dp"
+            android:orientation="vertical"
+            android:gravity="center_vertical">
 
-            <ImageView
-                android:id="@+id/btnShuffle"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_shuffle"
-                android:background="@drawable/btn_round_bg"
-                android:scaleType="centerInside"
-                android:padding="7dp"/>
+            <TextView
+                android:id="@+id/songTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No music playing"
+                android:textColor="#FFFFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="10sp"
+                android:autoSizeMaxTextSize="15sp"/>
+
+            <TextView
+                android:id="@+id/artistName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#B3FFFFFF"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="9sp"
+                android:autoSizeMaxTextSize="11sp"/>
 
             <ProgressBar
                 android:id="@+id/songProgress"
                 style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="12dp"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
+                android:layout_marginTop="5dp"
                 android:minHeight="12dp"
                 android:maxHeight="12dp"
                 android:max="100"
                 android:progress="0"
                 android:progressDrawable="@drawable/wave_progress"/>
 
-            <ImageView
-                android:id="@+id/btnRepeat"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_repeat"
-                android:background="@drawable/btn_round_bg"
-                android:scaleType="centerInside"
-                android:padding="7dp"/>
-
         </LinearLayout>
 
     </LinearLayout>
 
+    <!-- controles abajo, distribuidos a lo ancho -->
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:baselineAligned="false">
+
+        <ImageView
+            android:id="@+id/btnShuffle"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_shuffle"
+            android:scaleType="centerInside"
+            android:padding="6dp"/>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"/>
 
         <ImageView
             android:id="@+id/btnPrev"
@@ -120,8 +119,8 @@
             android:background="@drawable/play_btn_bg"
             android:scaleType="centerInside"
             android:padding="11dp"
-            android:layout_marginStart="3dp"
-            android:layout_marginEnd="3dp"/>
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="5dp"/>
 
         <ImageView
             android:id="@+id/btnNext"
@@ -131,6 +130,19 @@
             android:background="@drawable/btn_round_bg"
             android:scaleType="centerInside"
             android:padding="9dp"/>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"/>
+
+        <ImageView
+            android:id="@+id/btnRepeat"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_repeat"
+            android:scaleType="centerInside"
+            android:padding="6dp"/>
 
     </LinearLayout>
 
