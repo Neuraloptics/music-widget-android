@@ -52,11 +52,6 @@
         android:layout_height="0dp"
         android:visibility="gone"/>
     <ImageView
-        android:id="@+id/waveAccent"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone"/>
-    <ImageView
         android:id="@+id/btnShuffle"
         android:layout_width="0dp"
         android:layout_height="0dp"

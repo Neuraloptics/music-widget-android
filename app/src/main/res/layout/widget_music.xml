@@ -5,14 +5,14 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:orientation="horizontal"
-    android:padding="10dp"
+    android:padding="9dp"
     android:gravity="center_vertical">
 
     <!-- portada cuadrada para que el redondeo no se recorte -->
     <ImageView
         android:id="@+id/albumArt"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
+        android:layout_width="68dp"
+        android:layout_height="68dp"
         android:scaleType="centerCrop"
         android:background="@drawable/album_art_bg"
         android:src="@drawable/ic_music_note"/>
@@ -21,8 +21,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="12dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginStart="11dp"
+        android:layout_marginEnd="7dp"
         android:orientation="vertical"
         android:gravity="center_vertical">
 
@@ -32,10 +32,13 @@
             android:layout_height="wrap_content"
             android:text="No music playing"
             android:textColor="#FFFFFFFF"
-            android:textSize="15sp"
+            android:textSize="14sp"
             android:textStyle="bold"
             android:maxLines="1"
-            android:ellipsize="end"/>
+            android:ellipsize="end"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="10sp"
+            android:autoSizeMaxTextSize="14sp"/>
 
         <TextView
             android:id="@+id/artistName"
@@ -43,31 +46,25 @@
             android:layout_height="wrap_content"
             android:text=""
             android:textColor="#B3FFFFFF"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:maxLines="1"
-            android:ellipsize="end"/>
+            android:ellipsize="end"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="9sp"
+            android:autoSizeMaxTextSize="11sp"/>
 
-        <!-- onda M3 Expressive -->
-        <ImageView
-            android:id="@+id/waveAccent"
-            android:layout_width="46dp"
-            android:layout_height="8dp"
-            android:layout_marginTop="1dp"
-            android:src="@drawable/ic_wave"
-            android:scaleType="fitXY"/>
-
-        <!-- shuffle + progreso + repeat -->
+        <!-- shuffle + barra ondulada + repeat -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginTop="3dp">
+            android:layout_marginTop="4dp">
 
             <ImageView
                 android:id="@+id/btnShuffle"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:src="@drawable/ic_shuffle"
                 android:background="@drawable/btn_round_bg"
                 android:scaleType="centerInside"
@@ -77,17 +74,20 @@
                 android:id="@+id/songProgress"
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="0dp"
-                android:layout_height="4dp"
+                android:layout_height="12dp"
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
                 android:layout_marginEnd="4dp"
+                android:minHeight="12dp"
+                android:maxHeight="12dp"
                 android:max="100"
-                android:progress="0"/>
+                android:progress="0"
+                android:progressDrawable="@drawable/wave_progress"/>
 
             <ImageView
                 android:id="@+id/btnRepeat"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:src="@drawable/ic_repeat"
                 android:background="@drawable/btn_round_bg"
                 android:scaleType="centerInside"
@@ -105,8 +105,8 @@
 
         <ImageView
             android:id="@+id/btnPrev"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:src="@drawable/ic_skip_previous"
             android:background="@drawable/btn_round_bg"
             android:scaleType="centerInside"
@@ -114,19 +114,19 @@
 
         <ImageView
             android:id="@+id/btnPlayPause"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
             android:src="@drawable/ic_play"
             android:background="@drawable/play_btn_bg"
             android:scaleType="centerInside"
             android:padding="11dp"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp"/>
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"/>
 
         <ImageView
             android:id="@+id/btnNext"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:src="@drawable/ic_skip_next"
             android:background="@drawable/btn_round_bg"
             android:scaleType="centerInside"

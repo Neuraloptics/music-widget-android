@@ -190,8 +190,10 @@ class MusicWidgetProvider : AppWidgetProvider() {
             // API 31+: RemoteViews responsivo con múltiples layouts
             val views = RemoteViews(mapOf(
                 SizeF(100f,  50f) to buildViews(context, R.layout.widget_music_micro),
-                SizeF(140f,  50f) to buildViews(context, R.layout.widget_music_small),
-                SizeF(250f, 100f) to buildViews(context, R.layout.widget_music)
+                SizeF(160f,  55f) to buildViews(context, R.layout.widget_music_small),
+                SizeF(300f,  60f) to buildViews(context, R.layout.widget_music_small),
+                SizeF(250f, 110f) to buildViews(context, R.layout.widget_music),
+                SizeF(340f, 120f) to buildViews(context, R.layout.widget_music)
             ))
             manager.updateAppWidget(id, views)
         } else {
@@ -280,7 +282,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
         v.setInt(R.id.btnPlayPause, "setColorFilter", accentOn)
         v.setInt(R.id.btnShuffle,   "setColorFilter", if (shuffle) accent else dim)
         v.setInt(R.id.btnRepeat,    "setColorFilter", if (repeat != 0) accent else dim)
-        v.setInt(R.id.waveAccent,   "setColorFilter", accent)
 
         fun pi(req: Int, action: String) = PendingIntent.getBroadcast(
             context, req,

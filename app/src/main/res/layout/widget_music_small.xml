@@ -8,11 +8,11 @@
     android:padding="6dp"
     android:gravity="center_vertical">
 
-    <!-- portada cuadrada (4x1) -->
+    <!-- portada cuadrada (4x1 / 5x1) -->
     <ImageView
         android:id="@+id/albumArt"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
         android:scaleType="centerCrop"
         android:background="@drawable/album_art_bg"
         android:src="@drawable/ic_music_note"/>
@@ -35,7 +35,10 @@
             android:textSize="11sp"
             android:textStyle="bold"
             android:maxLines="1"
-            android:ellipsize="end"/>
+            android:ellipsize="end"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="9sp"
+            android:autoSizeMaxTextSize="11sp"/>
 
         <TextView
             android:id="@+id/artistName"
@@ -47,12 +50,19 @@
             android:maxLines="1"
             android:ellipsize="end"/>
 
-        <!-- views requeridos por el provider, ocultos en 4x1 -->
-        <ImageView
-            android:id="@+id/waveAccent"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:visibility="gone"/>
+        <ProgressBar
+            android:id="@+id/songProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:layout_marginTop="2dp"
+            android:minHeight="8dp"
+            android:maxHeight="8dp"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/wave_progress"/>
+
+        <!-- views requeridos por el provider, ocultos en 1 fila -->
         <ImageView
             android:id="@+id/btnShuffle"
             android:layout_width="0dp"
@@ -60,12 +70,6 @@
             android:visibility="gone"/>
         <ImageView
             android:id="@+id/btnRepeat"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:visibility="gone"/>
-        <ProgressBar
-            android:id="@+id/songProgress"
-            style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:visibility="gone"/>
