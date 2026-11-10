@@ -47,51 +47,58 @@
             android:maxLines="1"
             android:ellipsize="end"/>
 
-    </LinearLayout>
+        <!-- views requeridos por el provider, ocultos en 4x1 -->
+        <ImageView
+            android:id="@+id/waveAccent"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"/>
+        <ImageView
+            android:id="@+id/btnShuffle"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"/>
+        <ImageView
+            android:id="@+id/btnRepeat"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"/>
+        <ProgressBar
+            android:id="@+id/songProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"/>
 
-    <!-- views requeridos por el provider, ocultos en 4x1 -->
-    <ImageView
-        android:id="@+id/btnShuffle"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone"/>
-    <ImageView
-        android:id="@+id/btnRepeat"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone"/>
-    <ProgressBar
-        android:id="@+id/songProgress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone"/>
+    </LinearLayout>
 
     <ImageView
         android:id="@+id/btnPrev"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
         android:src="@drawable/ic_skip_previous"
+        android:background="@drawable/btn_round_bg"
         android:scaleType="centerInside"
-        android:padding="6dp"/>
+        android:padding="8dp"/>
 
     <ImageView
         android:id="@+id/btnPlayPause"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
         android:src="@drawable/ic_play"
         android:background="@drawable/play_btn_bg"
         android:scaleType="centerInside"
-        android:padding="9dp"
-        android:layout_marginStart="2dp"
-        android:layout_marginEnd="2dp"/>
+        android:padding="10dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"/>
 
     <ImageView
         android:id="@+id/btnNext"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
         android:src="@drawable/ic_skip_next"
+        android:background="@drawable/btn_round_bg"
         android:scaleType="centerInside"
-        android:padding="6dp"/>
+        android:padding="8dp"/>
 
 </LinearLayout>

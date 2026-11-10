@@ -280,6 +280,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
         v.setInt(R.id.btnPlayPause, "setColorFilter", accentOn)
         v.setInt(R.id.btnShuffle,   "setColorFilter", if (shuffle) accent else dim)
         v.setInt(R.id.btnRepeat,    "setColorFilter", if (repeat != 0) accent else dim)
+        v.setInt(R.id.waveAccent,   "setColorFilter", accent)
 
         fun pi(req: Int, action: String) = PendingIntent.getBroadcast(
             context, req,
