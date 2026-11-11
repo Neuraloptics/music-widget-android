@@ -85,7 +85,28 @@ class MusicWidgetProvider : AppWidgetProvider() {
         private fun isPrism(ctrl: android.media.session.MediaController?): Boolean =
             ctrl?.packageName == "com.prism.music"
 
-        private fun likedFromExtras(ctrl: android.media.session.MediaController?): Boolean? {
+        private fun prismLikeIconId(ctrl: android.media.session.MediaController?): Int? {
+            val actions = try { ctrl?.playbackState?.customActions } catch (e: Exception) { null } ?: return null
+            val a = actions.firstOrNull { it.action == "prism.LIKE" } ?: return null
+            return try {
+                val id = a.extras?.getInt(
+                    "androidx.media3.session.EXTRAS_KEY_COMMAND_BUTTON_ICON_COMPAT", -1) ?: -1
+                if (id != -1) id else null
+            } catch (e: Exception) { null }
+        }
+
+        private fun likedFromExtras(context: Context, ctrl: android.media.session.MediaController?): Boolean? {
+            if (isPrism(ctrl)) {
+                val id = prismLikeIconId(ctrl) ?: return null
+                val p = context.getSharedPreferences("mw_prefs", Context.MODE_PRIVATE)
+                val on = p.getInt("like_icon_on", Int.MIN_VALUE)
+                val off = p.getInt("like_icon_off", Int.MIN_VALUE)
+                return when (id) {
+                    on -> true
+                    off -> false
+                    else -> null
+                }
+            }
             val actions = try { ctrl?.playbackState?.customActions } catch (e: Exception) { null } ?: return null
             for (a in actions) {
                 if (!a.action.contains("like", true) && !a.action.contains("favorit", true) &&
@@ -248,7 +269,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 if (info != null) {
                     val prism = isPrism(ctrl)
                     val currentLiked = if (prism)
-                        (likedFromExtras(ctrl) ?: prefs.getBoolean("liked", false))
+                        (likedFromExtras(context, ctrl) ?: prefs.getBoolean("liked", false))
                     else info.second
                     val newLiked = !currentLiked
                     val action = if (prism) "prism.LIKE" else info.first
@@ -261,7 +282,16 @@ class MusicWidgetProvider : AppWidgetProvider() {
                         java.io.File(context.filesDir, "like_debug.txt").writeText("sent=" + action + " wasLiked=" + info.second + " newLiked=" + newLiked + " custom=" + customActions(ctrl) + " details=" + extrasDump(ctrl))
                     } catch (e: Exception) { }
                     refreshWidgets(context)
-                    Handler(context.mainLooper).postDelayed({ refreshWidgets(context) }, 900)
+                    Handler(context.mainLooper).postDelayed({
+                        if (prism) {
+                            val id = prismLikeIconId(ctrl)
+                            if (id != null) {
+                                if (newLiked) prefs.edit().putInt("like_icon_on", id).apply()
+                                else prefs.edit().putInt("like_icon_off", id).apply()
+                            }
+                        }
+                        refreshWidgets(context)
+                    }, 1200)
                 }
             }
             ACTION_UPDATE   -> refreshWidgets(context)
@@ -412,7 +442,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val like = likeInfo(ctrl)
         val likedTs = p.getLong("liked_ts", 0L)
         val overrideActive = (System.currentTimeMillis() - likedTs) in 0L..1500L
-        val extrasLiked = likedFromExtras(ctrl)
+        val extrasLiked = likedFromExtras(context, ctrl)
         val liked = if (overrideActive) p.getBoolean("liked", false)
                     else (extrasLiked ?: like?.second ?: p.getBoolean("liked", false))
         if (like != null) {
