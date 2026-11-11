@@ -86,41 +86,44 @@
     </LinearLayout>
 
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="54dp"
+        android:layout_width="50dp"
+        android:layout_height="match_parent"
         android:background="@drawable/dock_bg"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:padding="2dp"
         android:gravity="center">
 
         <ImageView
             android:id="@+id/btnPrev"
-            android:layout_width="42dp"
-            android:layout_height="match_parent"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:src="@drawable/ic_skip_previous"
             android:background="@drawable/ripple_cell"
             android:scaleType="centerInside"
-            android:padding="8dp"/>
+            android:padding="7dp"/>
 
         <ImageView
             android:id="@+id/btnPlayPause"
-            android:layout_width="48dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="2dp"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1.3"
+            android:layout_marginTop="2dp"
             android:src="@drawable/ic_play"
             android:background="@drawable/play_pill"
             android:scaleType="centerInside"
-            android:padding="10dp"/>
+            android:padding="9dp"/>
 
         <ImageView
             android:id="@+id/btnNext"
-            android:layout_width="42dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="2dp"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="2dp"
             android:src="@drawable/ic_skip_next"
             android:background="@drawable/ripple_cell"
             android:scaleType="centerInside"
-            android:padding="8dp"/>
+            android:padding="7dp"/>
 
     </LinearLayout>
 
