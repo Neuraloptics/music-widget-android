@@ -24,11 +24,11 @@
 
         <ImageView
             android:id="@+id/btnLike"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:layout_marginTop="2dp"
+            android:layout_width="match_parent"
+            android:layout_height="26dp"
+            android:layout_marginTop="3dp"
             android:src="@drawable/ic_heart_outline"
-            android:background="@drawable/ripple_cell_sm"
+            android:background="@drawable/like_pill_off"
             android:scaleType="centerInside"
             android:padding="4dp"/>
 

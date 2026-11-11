@@ -15,6 +15,7 @@ import android.os.Handler
 import android.os.SystemClock
 import android.provider.Settings
 import android.util.SizeF
+import android.view.Gravity
 import android.view.KeyEvent
 import android.widget.RemoteViews
 import androidx.core.app.NotificationManagerCompat
@@ -83,6 +84,37 @@ class MusicWidgetProvider : AppWidgetProvider() {
 
         private fun isPrism(ctrl: android.media.session.MediaController?): Boolean =
             ctrl?.packageName == "com.prism.music"
+
+        private fun likedFromExtras(ctrl: android.media.session.MediaController?): Boolean? {
+            val actions = try { ctrl?.playbackState?.customActions } catch (e: Exception) { null } ?: return null
+            for (a in actions) {
+                if (!a.action.contains("like", true) && !a.action.contains("favorit", true) &&
+                    !a.action.contains("heart", true)) continue
+                val e = a.extras ?: continue
+                for (k in e.keySet()) {
+                    if (!k.contains("like", true) && !k.contains("favorit", true) &&
+                        !k.contains("heart", true)) continue
+                    val v = try { e.get(k) } catch (ex: Exception) { null }
+                    when (v) {
+                        is Boolean -> return v
+                        is Int -> return v != 0
+                        is String -> return v.equals("true", true) || v == "1"
+                    }
+                }
+            }
+            return null
+        }
+
+        private fun extrasDump(ctrl: android.media.session.MediaController?): String {
+            val actions = try { ctrl?.playbackState?.customActions } catch (e: Exception) { null } ?: return ""
+            return actions.joinToString(" | ") { a ->
+                val e = a.extras
+                val kv = try {
+                    e?.keySet()?.joinToString(",") { k -> k + "=" + e.get(k) } ?: ""
+                } catch (ex: Exception) { "?" }
+                a.action + "{" + kv + "}"
+            }
+        }
 
         // 1) custom action del player (Prism, etc). 2) setShuffleMode/setRepeatMode (Media3, Spotify, YTM).
         private fun applyShuffle(context: Context, mode: Int) {
@@ -215,7 +247,10 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 val info = likeInfo(ctrl)
                 if (info != null) {
                     val prism = isPrism(ctrl)
-                    val newLiked = if (prism) !prefs.getBoolean("liked", false) else !info.second
+                    val currentLiked = if (prism)
+                        (likedFromExtras(ctrl) ?: prefs.getBoolean("liked", false))
+                    else info.second
+                    val newLiked = !currentLiked
                     val action = if (prism) "prism.LIKE" else info.first
                     try { ctrl?.transportControls?.sendCustomAction(action, null) } catch (e: Exception) { }
                     prefs.edit()
@@ -223,7 +258,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                         .putLong("liked_ts", System.currentTimeMillis())
                         .apply()
                     try {
-                        java.io.File(context.filesDir, "like_debug.txt").writeText("sent=" + action + " wasLiked=" + info.second + " newLiked=" + newLiked + " custom=" + customActions(ctrl) + " details=" + (ctrl?.playbackState?.customActions?.joinToString(" | ") { it.action + "=" + it.extras }))
+                        java.io.File(context.filesDir, "like_debug.txt").writeText("sent=" + action + " wasLiked=" + info.second + " newLiked=" + newLiked + " custom=" + customActions(ctrl) + " details=" + extrasDump(ctrl))
                     } catch (e: Exception) { }
                     refreshWidgets(context)
                     Handler(context.mainLooper).postDelayed({ refreshWidgets(context) }, 900)
@@ -267,10 +302,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
     private fun renderWidget(context: Context, manager: AppWidgetManager, id: Int) {
         // pantalla de permiso: siempre en layout full independiente del tamaño
         if (!hasNotificationAccess(context)) {
-            val v = RemoteViews(context.packageName, R.layout.widget_music_small)
-            v.setTextViewText(R.id.songTitle,  "tap para activar")
-            v.setTextViewText(R.id.artistName, "necesita acceso a notificaciones")
-            v.setTextViewText(R.id.albumName, "")
+            val v = RemoteViews(context.packageName, R.layout.widget_permission)
             val pi = PendingIntent.getActivity(
                 context, 99,
                 Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
@@ -317,9 +349,22 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val repeat  = ctrlInt(ctrl, "getRepeatMode") ?: p.getInt("repeat", 0)
 
         v.setOnClickPendingIntent(R.id.widgetRoot, null)
-        v.setTextViewText(R.id.songTitle,  title)
-        v.setTextViewText(R.id.artistName, artist)
-        v.setTextViewText(R.id.albumName,  album)
+        val hasSession = p.getBoolean("has_session", false)
+        if (!hasSession) {
+            v.setTextViewText(R.id.songTitle,  "No music playing")
+            v.setTextViewText(R.id.artistName, "")
+            v.setTextViewText(R.id.albumName,  "")
+            v.setInt(R.id.songTitle,  "setGravity", Gravity.CENTER)
+            v.setInt(R.id.artistName, "setGravity", Gravity.CENTER)
+            v.setInt(R.id.albumName,  "setGravity", Gravity.CENTER)
+        } else {
+            v.setTextViewText(R.id.songTitle,  title)
+            v.setTextViewText(R.id.artistName, artist)
+            v.setTextViewText(R.id.albumName,  album)
+            v.setInt(R.id.songTitle,  "setGravity", Gravity.START or Gravity.CENTER_VERTICAL)
+            v.setInt(R.id.artistName, "setGravity", Gravity.START or Gravity.CENTER_VERTICAL)
+            v.setInt(R.id.albumName,  "setGravity", Gravity.START or Gravity.CENTER_VERTICAL)
+        }
         v.setImageViewResource(R.id.btnPlayPause,
             if (playing) R.drawable.ic_pause else R.drawable.ic_play)
         v.setImageViewResource(R.id.btnRepeat,
@@ -367,20 +412,22 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val like = likeInfo(ctrl)
         val likedTs = p.getLong("liked_ts", 0L)
         val overrideActive = (System.currentTimeMillis() - likedTs) in 0L..1500L
-        val prism = isPrism(ctrl)
-        val liked = if (prism) p.getBoolean("liked", false)
-                    else if (overrideActive) p.getBoolean("liked", false)
-                    else (like?.second ?: p.getBoolean("liked", false))
+        val extrasLiked = likedFromExtras(ctrl)
+        val liked = if (overrideActive) p.getBoolean("liked", false)
+                    else (extrasLiked ?: like?.second ?: p.getBoolean("liked", false))
         if (like != null) {
             v.setImageViewResource(R.id.btnLike,
                 if (liked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
-            v.setInt(R.id.btnLike, "setColorFilter", if (liked) 0xFFFF6B8A.toInt() else dim)
+            v.setInt(R.id.btnLike, "setBackgroundResource",
+                if (liked) R.drawable.like_pill_on else R.drawable.like_pill_off)
+            v.setInt(R.id.btnLike, "setColorFilter", if (liked) accentOn else dim)
             v.setOnClickPendingIntent(R.id.btnLike, PendingIntent.getBroadcast(
                 context, 6,
                 Intent(context, MusicWidgetProvider::class.java).apply { action = ACTION_LIKE },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
         } else {
             v.setImageViewResource(R.id.btnLike, R.drawable.ic_heart_outline)
+            v.setInt(R.id.btnLike, "setBackgroundResource", R.drawable.like_pill_off)
             v.setInt(R.id.btnLike, "setColorFilter", dim)
             v.setOnClickPendingIntent(R.id.btnLike, null)
         }
