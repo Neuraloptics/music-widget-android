@@ -276,26 +276,26 @@ class MusicWidgetProvider : AppWidgetProvider() {
             return
         }
 
-        if (Build.VERSION.SDK_INT >= 31) {
-            // API 31+: RemoteViews responsivo con múltiples layouts
-            val views = RemoteViews(mapOf(
-                SizeF(120f, 55f) to buildViews(context, R.layout.widget_music_micro),
-                SizeF(180f, 55f) to buildViews(context, R.layout.widget_music_small),
-                SizeF(240f, 55f) to buildViews(context, R.layout.widget_music_wide),
-                SizeF(300f, 55f) to buildViews(context, R.layout.widget_music_xwide)
-            ))
-            manager.updateAppWidget(id, views)
-        } else {
-            val options   = manager.getAppWidgetOptions(id)
-            val minWidth  = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
-            val layoutRes = when {
-                minWidth < 155 -> R.layout.widget_music_micro
-                minWidth < 215 -> R.layout.widget_music_small
-                minWidth < 275 -> R.layout.widget_music_wide
-                else           -> R.layout.widget_music_xwide
+        val options = manager.getAppWidgetOptions(id)
+        val w = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
+        val h = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 60)
+
+        // debug de tamanos para calibrar buckets
+        try {
+            val dbg = context.getSharedPreferences("mw_prefs", Context.MODE_PRIVATE)
+            if (dbg.getInt("dbg_w", -1) != w || dbg.getInt("dbg_h", -1) != h) {
+                java.io.File(context.filesDir, "widget_size.txt").writeText("w=" + w + " h=" + h)
+                dbg.edit().putInt("dbg_w", w).putInt("dbg_h", h).apply()
             }
-            manager.updateAppWidget(id, buildViews(context, layoutRes))
+        } catch (e: Exception) { }
+
+        val layoutRes = when {
+            w < 150 -> R.layout.widget_music_micro
+            w < 230 -> R.layout.widget_music_small
+            w < 340 -> R.layout.widget_music_wide
+            else    -> R.layout.widget_music_xwide
         }
+        manager.updateAppWidget(id, buildViews(context, layoutRes))
     }
 
     private fun buildViews(context: Context, layoutRes: Int): RemoteViews {
