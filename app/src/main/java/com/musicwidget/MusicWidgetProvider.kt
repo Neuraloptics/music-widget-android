@@ -11,6 +11,7 @@ import android.media.AudioManager
 import android.media.session.PlaybackState
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.SystemClock
 import android.provider.Settings
 import android.util.SizeF
@@ -208,9 +209,23 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 val ctrl = MusicListenerService.activeController
                 val info = likeInfo(ctrl)
                 if (info != null) {
+                    val newLiked = !info.second
                     try { ctrl?.transportControls?.sendCustomAction(info.first, null) } catch (e: Exception) { }
-                    prefs.edit().putBoolean("liked", !info.second).apply()
+                    prefs.edit()
+                        .putBoolean("liked", newLiked)
+                        .putLong("liked_ts", System.currentTimeMillis())
+                        .apply()
+                    try {
+                        java.io.File(context.filesDir, "like_debug.txt").writeText(
+                            "sent=" + info.first + "
+wasLiked=" + info.second +
+                            "
+newLiked=" + newLiked + "
+custom=" + customActions(ctrl)
+                        )
+                    } catch (e: Exception) { }
                     refreshWidgets(context)
+                    Handler(context.mainLooper).postDelayed({ refreshWidgets(context) }, 900)
                 }
             }
             ACTION_UPDATE   -> refreshWidgets(context)
@@ -222,6 +237,8 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val sb = StringBuilder()
         val layouts = listOf(
             R.layout.widget_music_small,
+            R.layout.widget_music_wide,
+            R.layout.widget_music_xwide,
             R.layout.widget_music_micro
         )
         for (res in layouts) {
@@ -269,15 +286,20 @@ class MusicWidgetProvider : AppWidgetProvider() {
             // API 31+: RemoteViews responsivo con múltiples layouts
             val views = RemoteViews(mapOf(
                 SizeF(120f, 55f) to buildViews(context, R.layout.widget_music_micro),
-                SizeF(170f, 55f) to buildViews(context, R.layout.widget_music_small),
-                SizeF(250f, 55f) to buildViews(context, R.layout.widget_music_small)
+                SizeF(180f, 55f) to buildViews(context, R.layout.widget_music_small),
+                SizeF(240f, 55f) to buildViews(context, R.layout.widget_music_wide),
+                SizeF(300f, 55f) to buildViews(context, R.layout.widget_music_xwide)
             ))
             manager.updateAppWidget(id, views)
         } else {
             val options   = manager.getAppWidgetOptions(id)
             val minWidth  = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
-            val layoutRes = if (minWidth < 155) R.layout.widget_music_micro
-                            else R.layout.widget_music_small
+            val layoutRes = when {
+                minWidth < 155 -> R.layout.widget_music_micro
+                minWidth < 215 -> R.layout.widget_music_small
+                minWidth < 275 -> R.layout.widget_music_wide
+                else           -> R.layout.widget_music_xwide
+            }
             manager.updateAppWidget(id, buildViews(context, layoutRes))
         }
     }
@@ -342,8 +364,11 @@ class MusicWidgetProvider : AppWidgetProvider() {
         v.setTextColor(R.id.albumName, dim)
 
         val like = likeInfo(ctrl)
+        val likedTs = p.getLong("liked_ts", 0L)
+        val overrideActive = (System.currentTimeMillis() - likedTs) in 0L..1500L
+        val liked = if (overrideActive) p.getBoolean("liked", false)
+                    else (like?.second ?: p.getBoolean("liked", false))
         if (like != null) {
-            val liked = like.second
             v.setImageViewResource(R.id.btnLike,
                 if (liked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
             v.setInt(R.id.btnLike, "setColorFilter", if (liked) 0xFFFF6B8A.toInt() else dim)
@@ -386,7 +411,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
         v.setContentDescription(R.id.albumArt, "Abrir app de música")
         v.setContentDescription(R.id.btnLike, when {
             like == null -> "Like no disponible"
-            like.second -> "Quitar like"
+            liked -> "Quitar like"
             else -> "Dar like"
         })
 
