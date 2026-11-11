@@ -216,13 +216,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                         .putLong("liked_ts", System.currentTimeMillis())
                         .apply()
                     try {
-                        java.io.File(context.filesDir, "like_debug.txt").writeText(
-                            "sent=" + info.first + "
-wasLiked=" + info.second +
-                            "
-newLiked=" + newLiked + "
-custom=" + customActions(ctrl)
-                        )
+                        java.io.File(context.filesDir, "like_debug.txt").writeText("sent=" + info.first + " wasLiked=" + info.second + " newLiked=" + newLiked + " custom=" + customActions(ctrl))
                     } catch (e: Exception) { }
                     refreshWidgets(context)
                     Handler(context.mainLooper).postDelayed({ refreshWidgets(context) }, 900)
