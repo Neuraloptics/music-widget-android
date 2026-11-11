@@ -65,6 +65,8 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 it.contains("like", true) || it.contains("favorit", true) ||
                 it.contains("fav", true) || it.contains("thumbs", true) ||
                 it.contains("heart", true)
+            }.filterNot {
+                it.contains("dislike", true) || it.contains("not for me", true)
             }
             if (names.isEmpty()) return null
             val remove = names.firstOrNull {
@@ -78,6 +80,9 @@ class MusicWidgetProvider : AppWidgetProvider() {
             }
             return (add ?: names.first()) to false
         }
+
+        private fun isPrism(ctrl: android.media.session.MediaController?): Boolean =
+            ctrl?.packageName == "com.prism.music"
 
         // 1) custom action del player (Prism, etc). 2) setShuffleMode/setRepeatMode (Media3, Spotify, YTM).
         private fun applyShuffle(context: Context, mode: Int) {
@@ -209,14 +214,16 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 val ctrl = MusicListenerService.activeController
                 val info = likeInfo(ctrl)
                 if (info != null) {
-                    val newLiked = !info.second
-                    try { ctrl?.transportControls?.sendCustomAction(info.first, null) } catch (e: Exception) { }
+                    val prism = isPrism(ctrl)
+                    val newLiked = if (prism) !prefs.getBoolean("liked", false) else !info.second
+                    val action = if (prism) "prism.LIKE" else info.first
+                    try { ctrl?.transportControls?.sendCustomAction(action, null) } catch (e: Exception) { }
                     prefs.edit()
                         .putBoolean("liked", newLiked)
                         .putLong("liked_ts", System.currentTimeMillis())
                         .apply()
                     try {
-                        java.io.File(context.filesDir, "like_debug.txt").writeText("sent=" + info.first + " wasLiked=" + info.second + " newLiked=" + newLiked + " custom=" + customActions(ctrl))
+                        java.io.File(context.filesDir, "like_debug.txt").writeText("sent=" + action + " wasLiked=" + info.second + " newLiked=" + newLiked + " custom=" + customActions(ctrl) + " details=" + (ctrl?.playbackState?.customActions?.joinToString(" | ") { it.action + "=" + it.extras }))
                     } catch (e: Exception) { }
                     refreshWidgets(context)
                     Handler(context.mainLooper).postDelayed({ refreshWidgets(context) }, 900)
@@ -360,7 +367,9 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val like = likeInfo(ctrl)
         val likedTs = p.getLong("liked_ts", 0L)
         val overrideActive = (System.currentTimeMillis() - likedTs) in 0L..1500L
-        val liked = if (overrideActive) p.getBoolean("liked", false)
+        val prism = isPrism(ctrl)
+        val liked = if (prism) p.getBoolean("liked", false)
+                    else if (overrideActive) p.getBoolean("liked", false)
                     else (like?.second ?: p.getBoolean("liked", false))
         if (like != null) {
             v.setImageViewResource(R.id.btnLike,

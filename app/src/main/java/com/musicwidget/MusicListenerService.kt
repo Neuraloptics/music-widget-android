@@ -146,7 +146,7 @@ class MusicListenerService : NotificationListenerService() {
     }
 
     private fun handleControllers(controllers: List<MediaController>?) {
-        val ctrl = controllers?.firstOrNull()
+        val ctrl = controllers?.firstOrNull { it.packageName in MUSIC_PACKAGES }
         if (ctrl == null) {
             activeController = null
             refresh()
@@ -209,7 +209,10 @@ class MusicListenerService : NotificationListenerService() {
             .putBoolean("has_session", hasSession)
             .putLong("position", position)
             .putLong("duration", duration)
-            .apply { musicPackage?.let { putString("music_package", it) } }
+            .apply {
+                if (hasSession && musicPackage != null) putString("music_package", musicPackage)
+                else remove("music_package")
+            }
             .apply()
 
         val artFile = File(filesDir, "album_art.png")
