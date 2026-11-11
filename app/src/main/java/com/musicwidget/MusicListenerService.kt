@@ -109,7 +109,7 @@ class MusicListenerService : NotificationListenerService() {
             val sessions = sessionMgr?.getActiveSessions(
                 ComponentName(this, MusicListenerService::class.java)
             )
-            val ctrl = sessions?.firstOrNull() ?: return false
+            val ctrl = sessions?.firstOrNull { it.packageName in MUSIC_PACKAGES } ?: return false
             handleController(ctrl)
             true
         } catch (e: Exception) { false }
@@ -118,8 +118,8 @@ class MusicListenerService : NotificationListenerService() {
     private fun isRealMediaNotification(sbn: StatusBarNotification): Boolean {
         val extras = sbn.notification?.extras ?: return false
         val template = extras.getString("android.template") ?: ""
-        return template.contains("MediaStyle", ignoreCase = true)
-            || sbn.packageName in MUSIC_PACKAGES
+        // solo players de musica explicitos: navegadores y otras apps quedan fuera
+        return sbn.packageName in MUSIC_PACKAGES
     }
 
     private fun tryFromNotification(sbn: StatusBarNotification?) {

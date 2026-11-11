@@ -30,6 +30,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
         const val ACTION_SHUFFLE    = "com.musicwidget.SHUFFLE"
         const val ACTION_REPEAT     = "com.musicwidget.REPEAT"
         const val ACTION_TEST       = "com.musicwidget.TEST_INFLATE"
+        const val ACTION_LIKE       = "com.musicwidget.LIKE"
 
         fun sendMediaKey(context: Context, keyCode: Int) {
             val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -43,25 +44,63 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 .getEnabledListenerPackages(context)
                 .contains(context.packageName)
 
-        // setShuffleMode/setRepeatMode via reflection: no rompe build en APIs viejas
+        private fun ctrlInt(ctrl: android.media.session.MediaController?, method: String): Int? {
+            if (ctrl == null) return null
+            return try {
+                ctrl.javaClass.getMethod(method).invoke(ctrl) as? Int
+            } catch (e: Exception) { null }
+        }
+
+        private fun customActions(ctrl: android.media.session.MediaController?): List<String> {
+            if (ctrl == null) return emptyList()
+            return try {
+                ctrl.playbackState?.customActions?.map { it.action } ?: emptyList()
+            } catch (e: Exception) { emptyList() }
+        }
+
+        // Devuelve (accion para cambiar, estaLikeado) o null si el player no soporta like.
+        private fun likeInfo(ctrl: android.media.session.MediaController?): Pair<String, Boolean>? {
+            val names = customActions(ctrl).filter {
+                it.contains("like", true) || it.contains("favorit", true) ||
+                it.contains("fav", true) || it.contains("thumbs", true) ||
+                it.contains("heart", true)
+            }
+            if (names.isEmpty()) return null
+            val remove = names.firstOrNull {
+                it.contains("remove", true) || it.contains("unlike", true) ||
+                it.contains("dislike", true) || it.contains("unfavorite", true)
+            }
+            if (remove != null) return remove to true
+            val add = names.firstOrNull {
+                it.contains("add", true) || it.contains("like", true) ||
+                it.contains("favorite", true) || it.contains("thumbs up", true)
+            }
+            return (add ?: names.first()) to false
+        }
+
+        // 1) custom action del player (Prism, etc). 2) setShuffleMode/setRepeatMode (Media3, Spotify, YTM).
         private fun applyShuffle(context: Context, mode: Int) {
             val ctrl = MusicListenerService.activeController ?: return
+            val target = customActions(ctrl).firstOrNull { it.contains("shuffle", true) }
+            if (target != null) {
+                try { ctrl.transportControls.sendCustomAction(target, null); return } catch (e: Exception) { }
+            }
             try {
                 val tc = ctrl.transportControls
-                tc.javaClass
-                    .getMethod("setShuffleMode", java.lang.Integer.TYPE)
-                    .invoke(tc, mode)
-            } catch (e: Exception) { /* el player no lo soporta */ }
+                tc.javaClass.getMethod("setShuffleMode", java.lang.Integer.TYPE).invoke(tc, mode)
+            } catch (e: Exception) { }
         }
 
         private fun applyRepeat(context: Context, mode: Int) {
             val ctrl = MusicListenerService.activeController ?: return
+            val target = customActions(ctrl).firstOrNull { it.contains("repeat", true) }
+            if (target != null) {
+                try { ctrl.transportControls.sendCustomAction(target, null); return } catch (e: Exception) { }
+            }
             try {
                 val tc = ctrl.transportControls
-                tc.javaClass
-                    .getMethod("setRepeatMode", java.lang.Integer.TYPE)
-                    .invoke(tc, mode)
-            } catch (e: Exception) { /* el player no lo soporta */ }
+                tc.javaClass.getMethod("setRepeatMode", java.lang.Integer.TYPE).invoke(tc, mode)
+            } catch (e: Exception) { }
         }
 
         fun launchMusicApp(context: Context, preferredPackage: String?) {
@@ -150,16 +189,29 @@ class MusicWidgetProvider : AppWidgetProvider() {
             ACTION_PREV     -> sendMediaKey(context, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
             ACTION_OPEN_APP -> launchMusicApp(context, prefs.getString("music_package", null))
             ACTION_SHUFFLE  -> {
-                val next = !prefs.getBoolean("shuffle", false)
+                val cur = ctrlInt(MusicListenerService.activeController, "getShuffleMode")
+                    ?.let { it != 0 } ?: prefs.getBoolean("shuffle", false)
+                val next = !cur
                 prefs.edit().putBoolean("shuffle", next).apply()
                 applyShuffle(context, if (next) 1 else 0)
                 refreshWidgets(context)
             }
             ACTION_REPEAT   -> {
-                val next = (prefs.getInt("repeat", 0) + 1) % 3
+                val cur = ctrlInt(MusicListenerService.activeController, "getRepeatMode")
+                    ?: prefs.getInt("repeat", 0)
+                val next = (cur + 1) % 3
                 prefs.edit().putInt("repeat", next).apply()
                 applyRepeat(context, next)
                 refreshWidgets(context)
+            }
+            ACTION_LIKE     -> {
+                val ctrl = MusicListenerService.activeController
+                val info = likeInfo(ctrl)
+                if (info != null) {
+                    try { ctrl?.transportControls?.sendCustomAction(info.first, null) } catch (e: Exception) { }
+                    prefs.edit().putBoolean("liked", !info.second).apply()
+                    refreshWidgets(context)
+                }
             }
             ACTION_UPDATE   -> refreshWidgets(context)
             ACTION_TEST     -> runInflateTest(context)
@@ -169,7 +221,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
     private fun runInflateTest(context: Context) {
         val sb = StringBuilder()
         val layouts = listOf(
-            R.layout.widget_music,
             R.layout.widget_music_small,
             R.layout.widget_music_micro
         )
@@ -198,9 +249,10 @@ class MusicWidgetProvider : AppWidgetProvider() {
     private fun renderWidget(context: Context, manager: AppWidgetManager, id: Int) {
         // pantalla de permiso: siempre en layout full independiente del tamaño
         if (!hasNotificationAccess(context)) {
-            val v = RemoteViews(context.packageName, R.layout.widget_music)
+            val v = RemoteViews(context.packageName, R.layout.widget_music_small)
             v.setTextViewText(R.id.songTitle,  "tap para activar")
             v.setTextViewText(R.id.artistName, "necesita acceso a notificaciones")
+            v.setTextViewText(R.id.albumName, "")
             val pi = PendingIntent.getActivity(
                 context, 99,
                 Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
@@ -216,22 +268,16 @@ class MusicWidgetProvider : AppWidgetProvider() {
         if (Build.VERSION.SDK_INT >= 31) {
             // API 31+: RemoteViews responsivo con múltiples layouts
             val views = RemoteViews(mapOf(
-                SizeF(100f,  50f) to buildViews(context, R.layout.widget_music_micro),
-                SizeF(160f,  55f) to buildViews(context, R.layout.widget_music_small),
-                SizeF(300f,  60f) to buildViews(context, R.layout.widget_music_small),
-                SizeF(250f, 110f) to buildViews(context, R.layout.widget_music),
-                SizeF(340f, 120f) to buildViews(context, R.layout.widget_music)
+                SizeF(120f, 55f) to buildViews(context, R.layout.widget_music_micro),
+                SizeF(170f, 55f) to buildViews(context, R.layout.widget_music_small),
+                SizeF(250f, 55f) to buildViews(context, R.layout.widget_music_small)
             ))
             manager.updateAppWidget(id, views)
         } else {
             val options   = manager.getAppWidgetOptions(id)
             val minWidth  = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
-            val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 100)
-            val layoutRes = when {
-                minWidth  < 140               -> R.layout.widget_music_micro
-                minWidth  < 250 || minHeight < 90 -> R.layout.widget_music_small
-                else                          -> R.layout.widget_music
-            }
+            val layoutRes = if (minWidth < 155) R.layout.widget_music_micro
+                            else R.layout.widget_music_small
             manager.updateAppWidget(id, buildViews(context, layoutRes))
         }
     }
@@ -243,18 +289,14 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val artist  = p.getString("artist", "") ?: ""
         val album   = p.getString("album",  "") ?: ""
         val playing = p.getBoolean("playing", false)
-        val shuffle = p.getBoolean("shuffle", false)
-        val repeat  = p.getInt("repeat", 0)
-
-        val subtitle = when {
-            artist.isBlank() -> album
-            album.isBlank() || album == artist -> artist
-            else -> "$artist • $album"
-        }
+        val ctrl    = MusicListenerService.activeController
+        val shuffle = ctrlInt(ctrl, "getShuffleMode")?.let { it != 0 } ?: p.getBoolean("shuffle", false)
+        val repeat  = ctrlInt(ctrl, "getRepeatMode") ?: p.getInt("repeat", 0)
 
         v.setOnClickPendingIntent(R.id.widgetRoot, null)
         v.setTextViewText(R.id.songTitle,  title)
-        v.setTextViewText(R.id.artistName, subtitle)
+        v.setTextViewText(R.id.artistName, artist)
+        v.setTextViewText(R.id.albumName,  album)
         v.setImageViewResource(R.id.btnPlayPause,
             if (playing) R.drawable.ic_pause else R.drawable.ic_play)
         v.setImageViewResource(R.id.btnRepeat,
@@ -297,6 +339,23 @@ class MusicWidgetProvider : AppWidgetProvider() {
         v.setInt(R.id.btnPlayPause, "setColorFilter", accentOn)
         v.setInt(R.id.btnShuffle,   "setColorFilter", if (shuffle) accent else dim)
         v.setInt(R.id.btnRepeat,    "setColorFilter", if (repeat != 0) accent else dim)
+        v.setTextColor(R.id.albumName, dim)
+
+        val like = likeInfo(ctrl)
+        if (like != null) {
+            val liked = like.second
+            v.setImageViewResource(R.id.btnLike,
+                if (liked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
+            v.setInt(R.id.btnLike, "setColorFilter", if (liked) 0xFFFF6B8A.toInt() else dim)
+            v.setOnClickPendingIntent(R.id.btnLike, PendingIntent.getBroadcast(
+                context, 6,
+                Intent(context, MusicWidgetProvider::class.java).apply { action = ACTION_LIKE },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+        } else {
+            v.setImageViewResource(R.id.btnLike, R.drawable.ic_heart_outline)
+            v.setInt(R.id.btnLike, "setColorFilter", dim)
+            v.setOnClickPendingIntent(R.id.btnLike, null)
+        }
 
         fun pi(req: Int, action: String) = PendingIntent.getBroadcast(
             context, req,
@@ -325,6 +384,11 @@ class MusicWidgetProvider : AppWidgetProvider() {
             else -> "Repetir desactivado"
         })
         v.setContentDescription(R.id.albumArt, "Abrir app de música")
+        v.setContentDescription(R.id.btnLike, when {
+            like == null -> "Like no disponible"
+            like.second -> "Quitar like"
+            else -> "Dar like"
+        })
 
         return v
     }

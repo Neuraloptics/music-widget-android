@@ -13,8 +13,8 @@ android {
         applicationId = "com.musicwidget"
         minSdk        = 26
         targetSdk     = 34
-        versionCode   = 17
-        versionName   = "1.16"
+        versionCode   = 19
+        versionName   = "1.18"
     }
 
     signingConfigs {

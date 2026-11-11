@@ -48,6 +48,7 @@
                 <action android:name="com.musicwidget.PREV"/>
                 <action android:name="com.musicwidget.UPDATE"/>
                 <action android:name="com.musicwidget.OPEN_APP"/>
+                <action android:name="com.musicwidget.LIKE"/>
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
