@@ -47,6 +47,33 @@ class MusicListenerService : NotificationListenerService() {
             "com.musicplayer.mp3player"
         )
 
+        val BLOCKED_PACKAGES = setOf(
+            // Chrome
+            "com.android.chrome", "com.chrome.beta", "com.chrome.dev", "com.chrome.canary",
+            "com.chromium.browser", "org.chromium.chrome",
+            // Firefox
+            "org.mozilla.firefox", "org.mozilla.firefox_beta", "org.mozilla.fenix",
+            "org.mozilla.fennec_aurora", "org.mozilla.focus", "org.mozilla.klar",
+            "io.github.forkmaintainers.iceraven", "net.waterfox.android.release",
+            "com.librefox.browser", "io.ironfox.browser",
+            // Brave
+            "com.brave.browser", "com.brave.browser_beta", "com.brave.browser_dev",
+            "com.brave.browser_nightly", "com.brave.browser_default",
+            // Edge
+            "com.microsoft.emmx", "com.microsoft.emmx.beta", "com.microsoft.emmx.dev",
+            "com.microsoft.emmx.canary",
+            // Opera
+            "com.opera.browser", "com.opera.browser.beta", "com.opera.mini.native",
+            "com.opera.mini.native.beta", "com.opera.gx.mobile",
+            // Vivaldi
+            "com.vivaldi.browser", "com.vivaldi.browser.snapshot",
+            // Otros
+            "com.sec.android.app.sbrowser", "com.sec.android.app.sbrowser.beta",
+            "com.duckduckgo.mobile.android", "com.UCMobile.intl", "com.uc.browser.en",
+            "com.yandex.browser", "com.kiwibrowser.browser", "com.ghostbrowser.gb1",
+            "com.whale.android"
+        )
+
         const val ART_SIZE = 256
 
         // Referencia al controller activo (usada por el provider para TransportControls)
@@ -109,7 +136,7 @@ class MusicListenerService : NotificationListenerService() {
             val sessions = sessionMgr?.getActiveSessions(
                 ComponentName(this, MusicListenerService::class.java)
             )
-            val ctrl = sessions?.firstOrNull { it.packageName in MUSIC_PACKAGES } ?: return false
+            val ctrl = sessions?.firstOrNull { it.packageName in MUSIC_PACKAGES && it.packageName !in BLOCKED_PACKAGES } ?: return false
             handleController(ctrl)
             true
         } catch (e: Exception) { false }
@@ -119,7 +146,7 @@ class MusicListenerService : NotificationListenerService() {
         val extras = sbn.notification?.extras ?: return false
         val template = extras.getString("android.template") ?: ""
         // solo players de musica explicitos: navegadores y otras apps quedan fuera
-        return sbn.packageName in MUSIC_PACKAGES
+        return sbn.packageName in MUSIC_PACKAGES && sbn.packageName !in BLOCKED_PACKAGES
     }
 
     private fun tryFromNotification(sbn: StatusBarNotification?) {
@@ -146,7 +173,7 @@ class MusicListenerService : NotificationListenerService() {
     }
 
     private fun handleControllers(controllers: List<MediaController>?) {
-        val ctrl = controllers?.firstOrNull { it.packageName in MUSIC_PACKAGES }
+        val ctrl = controllers?.firstOrNull { it.packageName in MUSIC_PACKAGES && it.packageName !in BLOCKED_PACKAGES }
         if (ctrl == null) {
             activeController = null
             refresh()
